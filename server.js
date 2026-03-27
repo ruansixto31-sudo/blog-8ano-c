@@ -167,7 +167,12 @@ app.post('/api/posts', auth, upload.array('media', 5), async (req, res) => {
             title: req.body.title || '',
             caption: req.body.caption || '',
             description: req.body.description || '',
-            music: req.body.music && typeof req.body.music === 'string' ? JSON.parse(req.body.music) : null
+            music: req.body.music && typeof req.body.music === 'string' ? JSON.parse(req.body.music) : null,
+            // Phase 9
+            isBuilderBlog: req.body.isBuilderBlog === 'true' || req.body.isBuilderBlog === true,
+            groupName: req.body.groupName || '',
+            participants: req.body.participants ? JSON.parse(req.body.participants) : [],
+            layout: req.body.layout ? JSON.parse(req.body.layout) : []
         });
         
         await post.save();
@@ -182,6 +187,7 @@ app.get('/api/posts', async (req, res) => {
     try {
         const posts = await Post.find()
             .populate('user', 'username fullName avatar')
+            .populate('participants', 'username fullName avatar')
             .populate('comments.user', 'username avatar')
             .sort({ createdAt: -1 });
         res.json(posts);
@@ -239,9 +245,29 @@ app.delete('/api/posts/:id', auth, async (req, res) => {
     }
 });
 
-// --- User Routes ---
-app.get('/api/users/me', auth, async (req, res) => {
-    res.json(req.user);
+app.get('/api/users', auth, async (req, res) => {
+    try {
+        const { q, includeFakes } = req.query;
+        let query = {};
+        
+        // If not explicitly requested, hide fakes
+        if (includeFakes !== 'true') query.isFake = { $ne: true };
+
+        if (q) {
+            const search = { $regex: q, $options: 'i' };
+            const searchFilter = { $or: [{ username: search }, { fullName: search }] };
+            if (query.isFake) {
+                query = { $and: [ { isFake: query.isFake }, searchFilter ] };
+            } else {
+                query = searchFilter;
+            }
+        }
+
+        const users = await User.find(query).select('username fullName avatar bio isFake');
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.put('/api/users/profile', auth, upload.single('avatar'), async (req, res) => {
@@ -273,24 +299,86 @@ app.get('/api/users/:username/posts', async (req, res) => {
     }
 });
 
-app.get('/api/users', auth, async (req, res) => {
+
+// Follow/Unfollow User
+app.post('/api/users/:id/follow', auth, async (req, res) => {
     try {
-        const users = await User.find({ _id: { $ne: req.user._id } }).select('username fullName avatar');
-        // Ensure every user has an avatar for the UI
-        const usersWithAvatar = users.map(u => {
-            const userObj = u.toObject();
-            if(!userObj.avatar) userObj.avatar = 'https://i.pravatar.cc/150?u=' + u.username;
-            return userObj;
+        const targetUser = await User.findById(req.params.id);
+        const currentUser = await User.findById(req.user._id);
+        
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+        if (targetUser._id.toString() === currentUser._id.toString()) {
+            return res.status(400).json({ error: 'You cannot follow yourself' });
+        }
+
+        const isFollowing = currentUser.following.includes(targetUser._id);
+
+        if (isFollowing) {
+            currentUser.following = currentUser.following.filter(id => id.toString() !== targetUser._id.toString());
+            targetUser.followers = targetUser.followers.filter(id => id.toString() !== currentUser._id.toString());
+        } else {
+            currentUser.following.push(targetUser._id);
+            targetUser.followers.push(currentUser._id);
+        }
+
+        await currentUser.save();
+        await targetUser.save();
+        
+        res.json({ 
+            isFollowing: !isFollowing,
+            followersCount: targetUser.followers.length + (targetUser.followerBonus || 0),
+            followingCount: targetUser.following.length
         });
-        res.json(usersWithAvatar);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Detailed Profile API
+app.get('/api/users/:id/profile', auth, async (req, res) => {
+    try {
+        let user;
+        if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+            user = await User.findById(req.params.id);
+        } else {
+            user = await User.findOne({ username: req.params.id });
+        }
+        
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const populatedUser = await User.findById(user._id)
+            .select('-password')
+            .populate('followers', 'username fullName avatar')
+            .populate('following', 'username fullName avatar');
+
+        const posts = await Post.find({ user: user._id }).sort({ createdAt: -1 });
+        
+        const profileData = populatedUser.toObject();
+        // Safety check for null followers/following
+        const followers = populatedUser.followers.filter(f => f !== null);
+        const following = populatedUser.following.filter(f => f !== null);
+        
+        profileData.isFollowing = followers.some(f => f && f._id && f._id.toString() === req.user._id.toString());
+        profileData.postsCount = posts.length;
+        profileData.followersCount = (followers.length) + (populatedUser.followerBonus || 0);
+        profileData.followingCount = following.length;
+        profileData.posts = posts;
+        profileData.followers = followers;
+        profileData.following = following;
+
+        res.json(profileData);
+    } catch (err) {
+        console.error('SERVER PROFILE ERROR:', err);
+        res.status(500).json({ error: 'Erro interno ao processar perfil', details: err.message });
     }
 });
 
 // --- Message Routes ---
 app.get('/api/messages/:userId', auth, async (req, res) => {
     try {
+        const receiver = await User.findById(req.params.userId);
+        if (receiver && receiver.isFake) return res.status(403).json({ error: 'Este usuário não aceita mensagens.' });
+
         const messages = await Message.find({
             $or: [
                 { sender: req.user._id, receiver: req.params.userId },
@@ -307,8 +395,17 @@ app.get('/api/messages/:userId', auth, async (req, res) => {
 // --- Admin Routes ---
 app.get('/api/admin/users', adminAuth, async (req, res) => {
     try {
-        const users = await User.find().select('username fullName avatar isAdmin isBanned createdAt');
+        const users = await User.find().select('username fullName avatar isAdmin isBanned followerBonus createdAt');
         res.json(users);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/admin/users/:id/followers', adminAuth, async (req, res) => {
+    try {
+        const { count } = req.body;
+        const user = await User.findByIdAndUpdate(req.params.id, { followerBonus: parseInt(count) || 0 }, { new: true });
+        if(!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -359,6 +456,37 @@ app.get('/api/admin/posts', adminAuth, async (req, res) => {
             .populate('user', 'username avatar')
             .sort({ createdAt: -1 });
         res.json(posts);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/generate-fakes', adminAuth, async (req, res) => {
+    try {
+        const { count } = req.body;
+        const names = ["Gabriel Silva", "Lucas Santos", "Matheus Oliveira", "Pedro Costa", "Enzo Pereira", "João Ferreira", "Vitor Rodrigues", "Vinicius Almeida", "Arthur Nascimento", "Mariana Souza", "Beatriz Lima", "Julia Carvalho", "Ana Clara", "Laura Gomes", "Alice Martins", "Manuela Rocha", "Sophia Barbosa", "Helena Castro", "Isabella Mendes", "Valentina Vieira"];
+        const avatars = [
+            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100",
+            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+            "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
+            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
+            "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"
+        ];
+        
+        const fakes = [];
+        for (let i = 0; i < (parseInt(count) || 10); i++) {
+            const name = names[Math.floor(Math.random() * names.length)] + " " + (i + 1);
+            const user = new User({
+                fullName: name,
+                username: `user_${Math.random().toString(36).substr(2, 5)}`,
+                password: 'fake_password_123',
+                avatar: avatars[Math.floor(Math.random() * avatars.length)],
+                isFake: true,
+                bio: 'Perfil verificado do sistema.'
+            });
+            await user.save();
+            fakes.push(user);
+        }
+        res.json({ success: true, count: fakes.length });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
