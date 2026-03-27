@@ -22,6 +22,11 @@ const postSchema = new mongoose.Schema({
         artist: String,
         previewUrl: String
     },
+    // Phase 9: Blog Builder Fields
+    isBuilderBlog: { type: Boolean, default: false },
+    groupName: { type: String, default: '' },
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    layout: { type: mongoose.Schema.Types.Mixed, default: [] },
     createdAt: { type: Date, default: Date.now }
 });
 
