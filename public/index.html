@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>blog 8ano c | Sua Rede Social</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #050505;
@@ -98,6 +99,131 @@
         .music-player .track-info { font-size: 0.75rem; color: var(--secondary-text); overflow: hidden; }
         .music-player .track-info b { color: var(--text-color); display: block; }
 
+        /* Splash Screen */
+        #splashScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 10000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; transition: opacity 0.8s ease;
+        }
+        #splashScreen.fade-out { opacity: 0; pointer-events: none; }
+        .splash-logo { width: 120px; margin-bottom: 20px; animation: pulse 2s infinite; }
+        .splash-text { font-size: 2.5rem; font-weight: 800; color: white; letter-spacing: 2px; text-transform: uppercase; background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: fadeIn 1.5s ease; }
+        .splash-credit { position: absolute; bottom: 40px; color: var(--secondary-text); font-size: 0.9rem; font-weight: 600; letter-spacing: 1px; }
+
+        .page { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.6; transform: scale(1); } }
+
+        /* Lockdown Overlay */
+        #lockdownOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 20000; display: none; flex-direction: column;
+            justify-content: center; align-items: center; padding: 20px;
+            text-align: center;
+        }
+        #lockdownOverlay.active { display: flex; }
+        .lock-icon { font-size: 4rem; color: var(--accent-color); margin-bottom: 20px; animation: pulse 2s infinite; }
+        .lock-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 10px; }
+        .lock-desc { color: var(--secondary-text); margin-bottom: 30px; font-size: 0.9rem; }
+        .lock-input {
+            width: 100%; max-width: 300px; padding: 15px; border-radius: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            color: white; text-align: center; font-size: 1.2rem; letter-spacing: 5px;
+            margin-bottom: 20px; outline: none;
+        }
+        .lock-btn {
+            background: var(--accent-color); color: white; border: none;
+            padding: 12px 30px; border-radius: 30px; font-weight: 800;
+            cursor: pointer; transition: 0.3s;
+        }
+        .lock-btn:hover { transform: scale(1.05); }
+
+        /* Notes Style */
+        .notes-container {
+            display: flex; gap: 15px; overflow-x: auto; padding: 10px 0 20px;
+            scrollbar-width: none; border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+        }
+        .notes-container::-webkit-scrollbar { display: none; }
+        .note-item {
+            display: flex; flex-direction: column; align-items: center;
+            min-width: 70px; position: relative; cursor: pointer;
+        }
+        .note-bubble {
+            position: absolute; top: -15px; background: white; color: black;
+            padding: 4px 10px; border-radius: 12px; font-size: 0.65rem;
+            max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 5;
+            display: flex; align-items: center; gap: 4px; border: 1px solid #ddd;
+        }
+        .note-bubble::after {
+            content: ''; position: absolute; bottom: -5px; left: 15px;
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top: 5px solid white;
+        }
+        .note-avatar {
+            width: 60px; height: 60px; border-radius: 50%; padding: 2px;
+            background: var(--gradient);
+        }
+        .note-avatar img { width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--bg-color); }
+        .note-username { font-size: 0.7rem; color: var(--secondary-text); margin-top: 5px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Notification Panel */
+        .notif-panel {
+            position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px;
+            height: 100%; background: var(--bg-color); z-index: 3000;
+            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 1px solid var(--glass-border); display: flex; flex-direction: column;
+        }
+        .notif-panel.open { right: 0; }
+        .notif-item { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--glass-border); }
+        .notif-item img { width: 44px; height: 44px; border-radius: 50%; }
+        .notif-text { flex: 1; font-size: 0.85rem; }
+        .notif-text b { color: var(--text-color); }
+        .notif-time { font-size: 0.7rem; color: var(--secondary-text); display: block; margin-top: 2px; }
+        .notif-action-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+        /* Reels UI */
+        .reels-page {
+            height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory;
+            background: black; scrollbar-width: none;
+        }
+        .reels-page::-webkit-scrollbar { display: none; }
+        .reel-item {
+            height: 100vh; width: 100%; scroll-snap-align: start; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .reel-video { width: 100%; height: 100%; object-fit: cover; }
+        .reel-overlay {
+            position: absolute; bottom: 100px; left: 0; width: 100%;
+            padding: 20px; background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white; list-style: none;
+        }
+        .reel-actions {
+            position: absolute; right: 15px; bottom: 120px; display: flex;
+            flex-direction: column; gap: 20px; align-items: center;
+        }
+        .reel-action-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 0.8rem; }
+        .reel-action-btn i { font-size: 1.6rem; }
+
+        /* Post Options Dropdown */
+        .post-options-menu {
+            position: absolute; right: 15px; top: 45px; width: 180px;
+            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border); border-radius: 12px;
+            z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; overflow: hidden;
+        }
+        .post-options-menu.open { display: flex; }
+        .post-options-item {
+            padding: 12px 15px; font-size: 0.85rem; color: white;
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+            transition: 0.2s; border-bottom: 1px solid var(--glass-border);
+        }
+        .post-options-item:last-child { border-bottom: none; }
+        .post-options-item:hover { background: rgba(255,255,255,0.1); }
+        .post-options-item i { width: 16px; text-align: center; color: var(--accent-color); }
+
         * {
             margin: 0;
             padding: 0;
@@ -126,6 +252,27 @@
             margin: 0 auto;
             padding-bottom: 80px;
             min-height: 100vh;
+        }
+
+        /* Typing Loader */
+        .typing-loader {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            height: 12px;
+        }
+        .typing-loader span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            animation: typing 1s infinite ease-in-out;
+        }
+        .typing-loader span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-loader span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            50% { transform: translateY(-4px); opacity: 1; }
         }
 
         /* Header */
@@ -410,7 +557,7 @@
             margin-top: 10px;
         }
         /* Profile & Post Grid Upgrade */
-        .profile-container-v2 { padding: 0 15px; }
+        .profile-container-v2 { padding: 15px 15px 0 15px; }
         
         .profile-header-v2 {
             padding: 30px 15px;
@@ -472,18 +619,86 @@
         .stat-label-v2 { font-size: 0.7rem; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 1px; }
 
         .profile-bio-v2 {
-            font-size: 0.9rem;
+            font-size: 0.85rem; color: var(--secondary-text); margin-top: 10px; line-height: 1.5;
+        }
+
+        /* Builder Animations & Buttons */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+        
+        [class^="anim-"] { opacity: 0; }
+        .is-visible.anim-fadeIn { animation: fadeIn 0.7s ease-out both; opacity: 1; }
+        .is-visible.anim-slideUp { animation: slideUp 0.7s ease-out both; opacity: 1; }
+        .is-visible.anim-zoomIn { animation: zoomIn 0.7s ease-out both; opacity: 1; }
+
+
+        .builder-btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 10px 20px;
+            font-weight: 700;
+            transition: 0.3s;
+            text-align: center;
+        }
+        .builder-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .builder-video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            aspect-ratio: 16/9;
+            position: relative;
+        }
+        .builder-video-container iframe { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
+
+        .personalization-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+        .control-group label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
             color: var(--secondary-text);
-            line-height: 1.5;
+            font-weight: 800;
+        }
+        .control-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 5px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            outline: none;
+        }
+
+        .profile-bio-v2-extra {
             margin-bottom: 25px;
             padding: 0 20px;
         }
+
 
         .profile-btns-v2 {
             display: flex;
             gap: 12px;
             justify-content: center;
             margin-bottom: 30px;
+            flex-wrap: wrap; /* Prevents squashing on very small screens */
         }
 
         .btn-profile-v2 {
@@ -496,7 +711,11 @@
             transition: 0.3s;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            flex: 1; /* Balances buttons to equal width */
         }
 
         .btn-edit-v2 { background: var(--gradient); border: none; color: white; }
@@ -539,18 +758,20 @@
 
         .grid-item-type-icon {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.6);
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             color: white;
-            z-index: 2;
+            z-index: 5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
 
         .comment-item {
@@ -654,6 +875,20 @@
 
         /* Phase 13: Participant Tagging */
         .participant-search-container { position: relative; margin-top: 10px; }
+        .search-results-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-color); border: 1px solid var(--glass-border); border-radius: 12px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none; margin-top: 5px; }
+
+        /* AI Sidebar Styles */
+        .ai-msg { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); font-size: 0.9rem; line-height: 1.5; color: #eee; border-bottom-left-radius: 4px; align-self: flex-start; max-width: 90%; }
+        .user-msg { background: var(--accent-color); color: white; padding: 12px; border-radius: 12px; font-size: 0.9rem; line-height: 1.5; border-bottom-right-radius: 4px; align-self: flex-end; max-width: 90%; }
+        #aiInput::placeholder { color: rgba(255,255,255,0.3); }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+        .pulse { animation: pulse 1.5s infinite ease-in-out; }
+
         .search-suggestions { 
             position: absolute; top: 100%; left: 0; width: 100%; 
             background: #1a1a1a; border: 1px solid var(--glass-border); 
@@ -690,9 +925,72 @@
             flex-direction: column;
             gap: 25px;
         }
+
+        /* Notifications */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-color);
+            border: 2px solid var(--bg-color);
+            border-radius: 50%;
+            display: none;
+        }
+        .seen-status {
+            font-size: 0.65rem;
+            color: var(--secondary-text);
+            margin-top: 2px;
+            text-align: right;
+            display: block;
+        }
+        .token-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .ai-bubble {
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .is-mine .ai-bubble {
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-bubble:not(.is-mine) {
+            border-bottom-left-radius: 4px;
+        }
+
+        .admin-selector-item { padding: 10px; border-bottom: 1px solid var(--glass-border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .admin-selector-item:hover { background: rgba(255,255,255,0.05); }
+        .msg-delete-btn { opacity: 0; transition: opacity 0.2s; cursor: pointer; color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: 2px; }
+        .is-mine:hover .msg-delete-btn { opacity: 1; }
+        .badge-system { background: var(--accent-color); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: 800; text-transform: uppercase; vertical-align: middle; }
+        .direct-search-box { margin-bottom: 20px; position: relative; }
+        .direct-search-box input { width: 100%; padding: 10px 15px 10px 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 0.9rem; }
+        .direct-search-box i { position: absolute; left: 15px; top: 12px; color: var(--secondary-text); }
     </style>
 </head>
 <body>
+    <div id="splashScreen">
+        <h1 class="splash-text">Power by Ruan</h1>
+        <div class="splash-credit">blog 8ano c</div>
+    </div>
 
     <div class="app-container">
         <!-- Auth Pages -->
@@ -707,6 +1005,7 @@
                     <input type="password" id="loginPass" placeholder="Senha">
                 </div>
                 <button class="btn-primary" onclick="auth.login()">Entrar</button>
+                <p class="auth-switch" style="margin-top: 10px; cursor: pointer;" onclick="ui.showModal('forgotPassModal')">Esqueci a senha</p>
                 <p class="auth-switch">Não tem conta? <span onclick="ui.showPage('registerPage')">Cadastre-se</span></p>
             </div>
         </div>
@@ -731,10 +1030,14 @@
 
         <!-- Main App Content (Hidden until login) -->
         <div id="mainApp" class="hidden">
-            <header>
-                <div class="logo">PhotoFeed</div>
+            <header class="app-header glass">
+                <div class="logo">blog 8ano c</div>
                 <div class="header-actions">
-                    <i class="fa-regular fa-paper-plane" style="font-size: 1.4rem;" onclick="ui.showPage('messagesPage')"></i>
+                    <i class="fa-regular fa-square-plus" onclick="ui.showModal('postModal')" style="font-size: 1.4rem; cursor: pointer;"></i>
+                    <i class="fa-regular fa-heart" onclick="ui.toggleNotifPanel()" style="position: relative; font-size: 1.4rem; cursor: pointer;">
+                        <span id="activityNotification" class="notif-badge" style="display: none;"></span>
+                    </i>
+                    <div id="dmNotification" class="notif-badge" style="display: none; top: 15px; right: 15px;"></div>
                 </div>
             </header>
 
@@ -744,9 +1047,38 @@
                 </div>
             </div>
 
+            <div id="searchPage" class="page hidden" style="padding: 20px;">
+                <h2 style="margin-bottom: 20px;">Explorar</h2>
+                <div class="input-group">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 18px; color: var(--secondary-text);"></i>
+                    <input type="text" id="searchInput" placeholder="Pesquisar contas ou posts..." style="padding-left: 45px;" oninput="search.perform()">
+                </div>
+                <div id="searchResults" style="display: flex; flex-direction: column; gap: 15px;">
+                    <p style="text-align: center; color: var(--secondary-text); margin-top: 20px;">Comece a digitar para pesquisar...</p>
+                </div>
+            </div>
+
             <div id="messagesPage" class="page hidden">
                 <div style="padding: 20px;">
-                    <h2 style="margin-bottom: 20px;">Mensagens</h2>
+                    <div id="notesContainer" class="notes-container">
+                        <!-- Notes will be injected here -->
+                        <div class="note-item" onclick="notes.showCreateModal()">
+                            <div class="note-avatar" style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border: 2.5px dashed var(--glass-border);">
+                                <i class="fa-solid fa-plus" style="font-size: 1.2rem; color: var(--secondary-text);"></i>
+                            </div>
+                            <span class="note-username">Sua Nota</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px;">
+                        <h2 style="margin: 0;">Mensagens</h2>
+                        <button class="btn-primary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="ui.showGroupCreateModal()">
+                            <i class="fa-solid fa-users"></i> Novo Grupo
+                        </button>
+                    </div>
+                    <div class="direct-search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="directSearchInput" placeholder="Pesquisar conversas..." oninput="ui.filterDirect()">
+                    </div>
                     <div id="usersListMessages">
                         <!-- Users list for DMs -->
                     </div>
@@ -755,10 +1087,17 @@
 
             <div id="chatPage" class="page hidden">
                 <header>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <i class="fa-solid fa-arrow-left" onclick="ui.showPage('messagesPage')"></i>
-                        <img id="chatUserAvatar" src="" class="post-avatar">
-                        <h4 id="chatUserName">Nome</h4>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <i class="fa-solid fa-arrow-left" onclick="ui.showPage('messagesPage')"></i>
+                            <div style="display: flex; align-items: center; gap: 15px; cursor: pointer;" onclick="api.showGroupDetails()">
+                                <img id="chatUserAvatar" src="" class="post-avatar">
+                                <h4 id="chatUserName" style="margin: 0;">Nome</h4>
+                            </div>
+                        </div>
+                        <button id="btnLeaveGroup" class="hidden" style="background: rgba(255, 62, 62, 0.2); color: #ff3e3e; border: 1px solid #ff3e3e; border-radius: 8px; padding: 6px 12px; font-size: 0.75rem; cursor: pointer; font-weight: 600;" onclick="api.leaveGroup()">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sair
+                        </button>
                     </div>
                 </header>
                 <div id="chatMessages" style="padding: 20px; height: calc(100vh - 200px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
@@ -770,7 +1109,11 @@
                 </div>
             </div>
 
+
             <div id="profilePage" class="page hidden pb-nav">
+                <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+                    <i class="fa-solid fa-gear" style="font-size: 1.4rem; cursor: pointer; color: white;" onclick="ui.showPage('settingsPage')"></i>
+                </div>
                 <div class="profile-container-v2">
                     <div class="profile-header-v2">
                         <div class="profile-avatar-wrapper">
@@ -789,7 +1132,21 @@
                         </div>
 
                         <div id="profileStats" class="profile-stats-v2">
-                            <!-- Stats Cards injected here -->
+                            <!-- User Management Tool (Portal Studio 3.0) -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px; border-color: #3e92ff;">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-user-gear" style="margin-right: 8px; color: #3e92ff;"></i>Gestão de Usuários Premium</h3>
+                <p style="font-size: 0.75rem; color: var(--secondary-text); margin-bottom: 15px;">Dê selos de verificado e recarregue tokens de IA dos usuários.</p>
+                <div class="input-group" style="display:flex; gap:10px; margin-bottom: 15px;">
+                    <input type="text" id="adminUserSearchProfile" placeholder="Buscar usuário por @ ou nome..." style="flex:1;">
+                    <button class="btn-primary" style="width:auto; padding:0 20px;" onclick="admin.searchUsersForManagement('Profile')">Buscar 🔍</button>
+                </div>
+                <div id="adminUserListProfile" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <!-- User result rows will appear here -->
+                </div>
+            </div>
+
+            <!-- Stats Tool -->
+Cards injected here -->
                         </div>
                     </div>
                     
@@ -801,10 +1158,10 @@
 
             <nav class="bottom-nav glass">
                 <div class="nav-item active" onclick="ui.goToHome()"><i class="fa-solid fa-house"></i></div>
-                <div class="nav-item" onclick="ui.showModal('postModal')"><i class="fa-regular fa-square-plus"></i></div>
+                <div class="nav-item" onclick="ui.showPage('searchPage')"><i class="fa-solid fa-magnifying-glass"></i></div>
                 <div class="nav-item" onclick="ui.showPage('messagesPage')"><i class="fa-regular fa-paper-plane"></i></div>
-                <div class="nav-item" onclick="ui.viewProfile(state.user.id || state.user.username)"><i class="fa-regular fa-user"></i></div>
-                <div class="nav-item" onclick="ui.showPage('settingsPage')"><i class="fa-solid fa-gear"></i></div>
+                <div id="adminNavItem" class="nav-item hidden" onclick="ui.showPage('adminPage')"><i class="fa-solid fa-unlock-keyhole"></i></div>
+                <div class="nav-item" onclick="ui.viewProfile()"><i class="fa-regular fa-user"></i></div>
             </nav>
         </div>
 
@@ -846,6 +1203,12 @@
                 <h2>Painel Admin <span class="admin-badge">ADMIN</span></h2>
             </div>
 
+            <!-- Dashboard Stats -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chart-line" style="margin-right: 8px;"></i>Engajamento da Semana</h3>
+                <canvas id="engagementChart" style="width: 100%; height: 180px;"></canvas>
+            </div>
+
             <!-- Promote to Admin -->
             <div class="glass" style="padding: 20px; margin-bottom: 20px;">
                 <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i>Promover a Admin</h3>
@@ -869,28 +1232,81 @@
                 <button class="btn-primary" onclick="admin.sendNotification()">Enviar Notificação</button>
             </div>
 
-            <!-- Users Table -->
-            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
-                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-users" style="margin-right: 8px;"></i>Usuários</h3>
-                <div id="adminUsersList"></div>
+            <!-- Password Requests (Face Verification) -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px; border-color: var(--accent-color);">
+                <div class="admin-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div class="admin-tab" onclick="ui.switchAdminTab('requests')">Senhas</div>
+                    <div class="admin-tab" onclick="ui.switchAdminTab('system')">Gerenciar Sistema</div>
+                </div>
+                
+                <div id="adminUsersList" class="admin-panel-content"></div>
+                <div id="adminPostsList" class="admin-panel-content hidden"></div>
+                <div id="adminPassRequests" class="admin-panel-content hidden">
+                    <p style="text-align: center; color: var(--secondary-text); font-size: 0.8rem;">Nenhuma solicitação pendente.</p>
+                </div>
+                <div id="adminSystemSettings" class="admin-panel-content hidden">
+                    <h4 style="color: var(--accent-color); margin-bottom: 15px;">Configurações Globais</h4>
+                    <div id="systemTogglesArea">
+                        <!-- Toggles will be injected here -->
+                    </div>
+                </div>
             </div>
 
-            <!-- Posts Table -->
-            <div class="glass" style="padding: 20px;">
-                <h3 style="margin-bottom: 15px;"><i class="fa-regular fa-images" style="margin-right: 8px;"></i>Posts</h3>
-                <div id="adminPostsList"></div>
+            <!-- Engagement Injected (Fake Likes/Comments) -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chart-line" style="margin-right: 8px;"></i>Impulsionar Engajamento</h3>
+                <div class="input-group" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="injectPostId" placeholder="ID do Post" style="flex: 1;">
+                    <button class="btn-primary" style="width:auto; padding:0 10px;" onclick="admin.showPostsList('injectPostId')"><i class="fa-solid fa-list"></i></button>
+                    <input type="number" id="injectLikes" placeholder="Curtidas" style="width: 80px;">
+                </div>
+                <div class="input-group">
+                    <textarea id="injectComments" placeholder="Comentários (um por linha)..." style="width: 100%; height: 60px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; color: white; padding: 10px;"></textarea>
+                </div>
+                <button class="btn-primary" onclick="admin.injectEngagement()">Aplicar Impulso ✨</button>
+            </div>
+
+            <!-- Super Follow Tool -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px; border-color: var(--accent-color);">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-bolt" style="margin-right: 8px;"></i>Super Impulso (@seguidores)</h3>
+                <p style="font-size: 0.75rem; color: var(--secondary-text); margin-bottom: 15px;">Força TODAS as contas a seguirem o @username informado.</p>
+                <div class="input-group" style="display:flex; gap:10px;">
+                    <input type="text" id="superFollowHandle" placeholder="@usuario ou usuario" style="flex:1;">
+                    <button class="btn-primary" style="width:auto; padding:0 10px;" onclick="admin.showUsersList('superFollowHandle')"><i class="fa-solid fa-list"></i></button>
+                    <button class="btn-primary" style="width:auto; padding:10px 18px;" onclick="admin.forceFollowByHandle()">Executar 🚀</button>
+                </div>
+            </div>
+
+            <!-- Force Unfollow Tool -->
+            <div class="glass" style="padding: 20px; margin-bottom: 20px; border-color: var(--accent-color);">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-user-minus" style="margin-right: 8px;"></i>Forçar Parar de Seguir</h3>
+                <p style="font-size: 0.75rem; color: var(--secondary-text); margin-bottom: 15px;">Selecione quem vai parar de seguir e quem deixará de ser seguido.</p>
+                <div class="input-group" style="display:flex; flex-direction: column; gap:10px;">
+                    <label style="font-size: 0.7rem; color: var(--secondary-text);">Quem vai parar de seguir (Seguidor):</label>
+                    <select id="unfollowFollowerSelect" style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:10px; color:white; outline:none; font-size: 0.9rem;"></select>
+                    
+                    <label style="font-size: 0.7rem; color: var(--secondary-text);">Quem será deixado (Alvo):</label>
+                    <select id="unfollowTargetSelect" style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:10px; color:white; outline:none; font-size: 0.9rem;"></select>
+                    
+                    <button class="btn-primary" onclick="admin.forceUnfollow()">Remover Seguimento ✂️</button>
+                </div>
             </div>
         </div>
 
         <!-- Blog Builder Modal -->
-        <div id="builderModal" class="modal">
-            <div class="modal-content glass" style="max-width: 95%; width: 500px; height: 90vh; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>Construtor de Blog</h3>
-                    <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="ui.closeModal('builderModal')"></i>
+        <div id="builderModal" class="modal" style="padding: 0;">
+            <div class="modal-content glass" style="max-width: 100%; width: 100vw; height: 100vh; margin: 0; border-radius: 0; border: none; display: flex; flex-direction: column; background: var(--bg-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 20px 20px 0 20px;">
+                    <h2 style="font-family: 'Outfit'; font-weight: 800; display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-color);"></i> Estúdio do Portal</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="nav-btn" style="background: var(--accent-color); color: white; border: none; padding: 8px 15px; font-size: 0.8rem;" onclick="aiAssistant.toggle()"><i class="fa-solid fa-robot"></i> Assistente IA</button>
+                        <button class="nav-btn" style="width: auto; padding: 8px 15px; font-size: 0.8rem; background: rgba(255,255,255,0.1);" onclick="ui.closeModal('builderModal')"><i class="fa-solid fa-xmark"></i> Fechar Estúdio</button>
+                    </div>
                 </div>
 
-                <div style="flex: 1; overflow-y: auto; padding-right: 5px;">
+                <div style="display: flex; flex: 1; overflow: hidden; position: relative;">
+                    <!-- Main Editor Area -->
+                    <div id="builderMainArea" style="flex: 1; overflow-y: auto; padding: 0 20px 20px 20px; transition: 0.3s ease;">
                     <!-- Group Info Section -->
                     <div class="glass" style="padding: 15px; margin-bottom: 15px; border-color: var(--accent-color);">
                         <p style="font-size: 0.8rem; font-weight: 600; margin-bottom: 10px;"><i class="fa-solid fa-users"></i> Informações do Grupo</p>
@@ -909,25 +1325,129 @@
                         <div id="builderParticipantTags" class="participant-tags"></div>
                     </div>
 
-                    <p style="font-size: 0.75rem; color: var(--secondary-text); margin-bottom: 10px;">Adicione blocos para montar seu blog:</p>
-                    <div class="builder-controls">
-                        <button class="builder-btn" onclick="builder.addBlock('title')"><i class="fa-solid fa-heading"></i> Título</button>
-                        <button class="builder-btn" onclick="builder.addBlock('text')"><i class="fa-solid fa-paragraph"></i> Parágrafo</button>
-                        <button class="builder-btn" onclick="document.getElementById('builderImageInput').click()"><i class="fa-solid fa-image"></i> Imagem</button>
+                    <p style="font-size: 0.75rem; color: var(--secondary-text); margin-bottom: 10px;">Adicione blocos para montar sua matéria:</p>
+                    <div class="builder-controls" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 25px;">
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="document.getElementById('builderHeroInput').click()"><i class="fa-solid fa-image" style="color: var(--accent-color);"></i> Capa Hero</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('title')"><i class="fa-solid fa-heading"></i> Título principal</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('subtitle')"><i class="fa-solid fa-font"></i> Subtítulo</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('text')"><i class="fa-solid fa-paragraph"></i> Parágrafo</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="document.getElementById('builderImageInput').click()"><i class="fa-solid fa-images"></i> Imagem</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('button')"><i class="fa-solid fa-link" style="color: #3e92ff;"></i> Botão</button>
+                        <button class="builder-btn" style="background: rgba(255,193,7,0.1); border: 1px solid #ffc107; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; color: #ffc107;" onclick="ui.showModal('templateModal')"><i class="fa-solid fa-wand-magic-sparkles"></i> Templates</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('quote')"><i class="fa-solid fa-quote-left" style="color: #f09433;"></i> Citação</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('info')"><i class="fa-solid fa-circle-info" style="color: #22c55e;"></i> Info Box</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('stat')"><i class="fa-solid fa-chart-simple" style="color: #3e92ff;"></i> Dado</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.addBlock('list')"><i class="fa-solid fa-table-list" style="color: #c084fc;"></i> Tabela</button>
+                        <button class="builder-btn" style="background: rgba(255,255,255,0.1); border: 1px solid var(--accent-color); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;" onclick="builder.changeGlobalBg()"><i class="fa-solid fa-fill-drip" style="color: var(--accent-color);"></i> Fundo do Blog</button>
+
+
+
+                        <input type="file" id="builderHeroInput" hidden accept="image/*" onchange="builder.handleHeroUploadFromInput(event)">
                         <input type="file" id="builderImageInput" hidden accept="image/*" onchange="builder.handleImageUploadFromInput(event)">
+                        <input type="color" id="builderColorPicker" style="display:none" onchange="builder._onColorPicked(event)">
                     </div>
 
-                    <div id="block-list" class="builder-list-container">
+                    <div id="block-list" class="builder-list-container" style="max-width: 800px; margin: 0 auto;">
                         <!-- Ordered blocks will be injected here -->
                     </div>
-                </div>
 
-                <button class="btn-primary" style="margin-top: 20px;" id="btnSaveBlog" onclick="builder.publish()">Publicar Blog</button>
+                    <div style="padding: 20px; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); display: flex; justify-content: flex-end; gap: 10px;">
+                        <button class="btn-primary" style="width: auto; padding: 12px 25px; font-size: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--secondary-text); border: 1px solid var(--glass-border);" id="btnSaveDraft" onclick="builder.publish('draft')"><i class="fa-solid fa-floppy-disk"></i> Salvar Rascunho</button>
+                        <button class="btn-primary" style="width: auto; padding: 12px 30px; font-size: 1.1rem; border-radius: 12px;" id="btnSaveBlog" onclick="builder.publish('published')"><i class="fa-solid fa-paper-plane" style="margin-right: 8px;"></i> Publicar Matéria</button>
+                    </div>
+                </div> <!-- End builderMainArea -->
+
+                <!-- AI Sidebar -->
+                <div id="aiSidebar" class="glass" style="width: 0; min-width: 0; height: 100%; border-left: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: 0.3s ease; overflow: hidden; background: rgba(10,10,10,0.4); backdrop-filter: blur(20px);">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column;">
+                            <h3 style="font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-robot" style="color: var(--accent-color);"></i> Mestre IA</h3>
+                            <span id="aiTokenDisplay" class="token-badge"><i class="fa-solid fa-bolt"></i> -- tokens</span>
+                        </div>
+                        <button class="block-btn" style="width: 35px; height: 35px;" onclick="aiAssistant.toggle()"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    
+                    <div id="aiChatList" style="flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px;">
+                        <div class="ai-msg">
+                            Olá! Eu sou o assistente do Portal. Me dê uma ideia de tema ou cole um texto aqui e eu monto todo o blog para você nos mínimos detalhes! ✨
+                        </div>
+                    </div>
+
+                    <div style="padding: 15px; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
+                        <textarea id="aiInput" placeholder="Ex: Crie uma notícia sobre o novo jogo do Homem-Aranha..." 
+                            style="width: 100%; height: 80px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; color: white; padding: 10px; font-size: 0.85rem; outline: none; resize: none; margin-bottom: 10px;"></textarea>
+                        <button id="btnAiSend" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="aiAssistant.send()">
+                            <i class="fa-solid fa-paper-plane"></i> Montar Blog com IA
+                        </button>
+                    </div>
+                </div>
+            </div> <!-- End Flex Container -->
+        </div>
+    </div>
+
+
+        <!-- Create Group DM Modal -->
+        <div id="groupDMModal" class="modal">
+            <div class="modal-content glass" style="max-width: 400px; max-height: 90vh; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Criar Grupo de Chat</h3>
+                    <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="ui.closeModal('groupDMModal')"></i>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="groupDMName" placeholder="Nome do Grupo">
+                </div>
+                
+                <p style="font-size: 0.8rem; color: var(--secondary-text); margin-bottom: 10px;">Selecionar Participantes:</p>
+                <div id="groupDMParticipantsList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- User list with checkboxes -->
+                </div>
+                
+                <button class="btn-primary" style="margin-top: 20px;" onclick="api.createGroupConversation()">Criar Grupo</button>
             </div>
         </div>
 
         <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
+
+        <!-- Template Modal -->
+        <div id="templateModal" class="modal">
+            <div class="modal-content glass" style="max-width: 500px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-wand-magic-sparkles" style="color: #ffc107;"></i> Templates Prontos</h3>
+                    <i class="fa-solid fa-xmark close-modal" onclick="ui.closeModal('templateModal')"></i>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 20px;">Selecione um modelo para começar rapidamente. Isso substituirá seus blocos atuais.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                    <button class="builder-btn" style="justify-content: flex-start; padding: 15px; background: rgba(255,255,255,0.05);" onclick="builder.loadTemplate('noticia'); ui.closeModal('templateModal')">
+                        <i class="fa-solid fa-newspaper" style="font-size: 1.5rem; width: 40px; color: var(--accent-color);"></i>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; font-size: 1rem;">Notícia Padrão</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-text);">Headline, Capa HD e corpo de texto.</div>
+                        </div>
+                    </button>
+                    
+                    <button class="builder-btn" style="justify-content: flex-start; padding: 15px; background: rgba(255,255,255,0.05);" onclick="builder.loadTemplate('review'); ui.closeModal('templateModal')">
+                        <i class="fa-solid fa-star" style="font-size: 1.5rem; width: 40px; color: #ffc107;"></i>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; font-size: 1rem;">Review de Vídeo</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-text);">Vídeo do YouTube, Tabela técnica e Chamada.</div>
+                        </div>
+                    </button>
+                    
+                    <button class="builder-btn" style="justify-content: flex-start; padding: 15px; background: rgba(255,255,255,0.05);" onclick="builder.loadTemplate('galeria'); ui.closeModal('templateModal')">
+                        <i class="fa-solid fa-images" style="font-size: 1.5rem; width: 40px; color: #3e92ff;"></i>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; font-size: 1rem;">Galeria de Imagens</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-text);">Foco visual com legendas e destaques.</div>
+                        </div>
+                    </button>
+                </div>
+                
+                <button class="btn-primary" style="background: transparent; margin-top: 15px;" onclick="ui.closeModal('templateModal')">Cancelar</button>
+            </div>
+        </div>
 
         <!-- Choice Modal -->
         <div id="postModal" class="modal">
@@ -1000,9 +1520,21 @@
         </div>
 
         <div id="postDetailModal" class="modal">
-            <div class="modal-content glass" style="padding: 0; overflow: hidden; max-height: 90vh;">
+            <div class="modal-content glass" style="padding: 0; overflow: hidden; max-height: 90vh; position: relative;">
+                <i class="fa-solid fa-xmark" style="position: absolute; top: 15px; right: 15px; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10; text-shadow: 0 0 5px rgba(0,0,0,0.8);" onclick="ui.closeModal('postDetailModal')"></i>
                 <div id="postDetailContent"></div>
-                <button class="btn-primary" style="background: var(--bg-color); border-top: 1px solid var(--glass-border); border-radius: 0;" onclick="ui.closeModal('postDetailModal')">Fechar</button>
+                <div style="background: var(--bg-color); border-top: 1px solid var(--glass-border); padding: 15px; display: flex; gap: 10px;">
+                    <button class="btn-primary" style="flex: 1; border-radius: 12px;" onclick="ui.closeModal('postDetailModal')">Fechar</button>
+                    <button id="btnListViewers" class="btn-primary" style="flex: 1; border-radius: 12px; background: rgba(255,255,255,0.05);" onclick="ui.showViewersList()">👀 Ver Visualizações</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewersListModal" class="modal">
+            <div class="modal-content glass" style="max-height: 70vh;">
+                <h3 style="margin-bottom: 20px;">Visualizações</h3>
+                <div id="viewersUsersList" style="max-height: 400px; overflow-y: auto;"></div>
+                <button class="btn-primary" style="background: transparent; margin-top: 10px;" onclick="ui.closeModal('viewersListModal')">Fechar</button>
             </div>
         </div>
     </div>
@@ -1012,6 +1544,58 @@
     </footer>
 
     </div> <!-- Closing app-container -->
+
+    <!-- Notification Panel overlay -->
+    <div id="notifOverlay" class="sheet-overlay" onclick="ui.toggleNotifPanel()"></div>
+    <div id="notifPanel" class="notif-panel">
+        <div class="sheet-header">
+            <h3 style="color: var(--text-color);">Notificações</h3>
+            <i class="fa-solid fa-xmark sheet-close" onclick="ui.toggleNotifPanel()"></i>
+        </div>
+        <div id="notifList" class="sheet-content">
+            <!-- Notifications will be injected here -->
+        </div>
+    </div>
+
+    <!-- Create Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content glass" style="max-width: 350px;">
+            <h3>Sua Nota</h3>
+            <textarea id="noteText" placeholder="O que você está pensando?" maxlength="60" style="width: 100%; height: 80px; margin: 15px 0; background: rgba(255,255,255,0.05); color: white; border: none; border-radius: 12px; padding: 12px; outline: none;"></textarea>
+            
+            <div id="noteMusicDisplay" class="music-player hidden" style="margin-bottom: 15px;">
+                <i class="fa-solid fa-music"></i>
+                <div class="track-info"><b id="noteMusicTitle">Musica</b> <span id="noteMusicArtist">Artista</span></div>
+                <i class="fa-solid fa-xmark" style="margin-left: auto; cursor: pointer;" onclick="notes.removeMusic()"></i>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="flex: 1; background: rgba(255,255,255,0.1);" onclick="notes.showMusicSearch()">🎵 Música</button>
+                <button class="btn-primary" style="flex: 1;" onclick="notes.share()">Compartilhar</button>
+            </div>
+            <button class="btn-primary" style="background: transparent; border: none; font-size: 0.8rem; margin-top: 10px;" onclick="ui.closeModal('noteModal')">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Group Details Modal -->
+    <div id="groupDetailsModal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0;">Detalhes do Grupo</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem;" onclick="ui.closeModal('groupDetailsModal')"></i>
+            </div>
+            
+            <div id="groupDetailsContent" style="max-height: 50vh; overflow-y: auto; margin-bottom: 15px;">
+                <!-- Participants injected here -->
+            </div>
+            
+            <div id="groupAdminActions" class="hidden" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <button class="btn-primary" style="background: rgba(255, 62, 62, 0.1); color: #ff3e3e; border: 1px solid #ff3e3e; margin-top: 10px;" onclick="api.deleteGroup()">
+                    <i class="fa-solid fa-trash-can"></i> Excluir Grupo Permanentemente
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Comments Bottom Sheet -->
     <div id="commentsOverlay" class="sheet-overlay" onclick="ui.closeCommentsModal()"></div>
@@ -1037,12 +1621,90 @@
         </div>
     </div>
 
-    <!-- Followers List Modal -->
+    <!-- Lockdown Overlay -->
+    <div id="lockdownOverlay">
+        <i class="fa-solid fa-lock lock-icon"></i>
+        <h1 class="lock-title">Acesso Restrito</h1>
+        <p class="lock-desc">Este portal está temporariamente fechado pelo administrador.<br>Insira o código de acesso para continuar.</p>
+        <input type="password" id="lockdownInput" class="lock-input" placeholder="••••••••">
+        <button class="lock-btn" onclick="system.unlock()">Desbloquear Portal</button>
+        <p style="margin-top: 50px; font-size: 0.7rem; color: #333;">POWERED BY ZERO 2 BLOG</p>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPassModal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px;">
+            <h2 style="margin-bottom: 20px;">Recuperar Conta</h2>
+            <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 20px;">Para trocar sua senha, envie uma foto do seu rosto. O administrador analisará sua solicitação.</p>
+            <div class="input-group">
+                <input type="text" id="forgotUser" placeholder="Seu Usuário">
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label style="font-size: 0.8rem; color: var(--secondary-text);">Foto do Rosto:</label>
+                <input type="file" id="facePhoto" accept="image/*" style="margin-top: 5px;">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-secondary" style="flex: 1;" onclick="ui.closeModal('forgotPassModal')">Cancelar</button>
+                <button class="btn-primary" style="flex: 1;" onclick="api.requestPasswordReset()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin User Detail Modal -->
+    <div id="adminUserDetailModal" class="modal">
+        <div class="modal-content glass" style="max-width: 500px;">
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
+                <img id="adminDetAvatar" src="" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--accent-color);">
+                <div>
+                    <h2 id="adminDetUsername">@user</h2>
+                    <p id="adminDetFullName" style="color: var(--secondary-text);"></p>
+                </div>
+            </div>
+            <div class="glass" style="padding: 15px; margin-bottom: 20px;">
+                <p><b>Senha Real:</b> <span id="adminDetPassword" style="color: var(--accent-color); font-family: monospace; font-size: 1.1rem;"></span></p>
+                <p style="margin-top: 10px;"><b>Data de Criação:</b> <span id="adminDetDate"></span></p>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-primary" id="btnMassFollow" style="background: var(--gradient); border: none;">Forçar Todos a Seguir</button>
+                <button class="btn-secondary" onclick="ui.closeModal('adminUserDetailModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="followListModal" class="modal">
         <div class="modal-content glass" style="max-height: 70vh;">
             <h3 id="followListTitle" style="margin-bottom: 20px;">Lista</h3>
             <div id="followUsersList" style="max-height: 400px; overflow-y: auto;"></div>
             <button class="btn-primary" style="background: transparent; margin-top: 10px;" onclick="ui.closeModal('followListModal')">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Write News Modal -->
+    <div id="writeNewsModal" class="modal">
+        <div class="modal-content glass" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-family: 'Outfit';">Publicar Nova Notícia</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem;" onclick="ui.closeModal('writeNewsModal')"></i>
+            </div>
+            <form id="writeNewsForm" onsubmit="api.submitArticle(event)">
+                <div class="input-group">
+                    <input type="text" id="articleTitle" placeholder="Manchete principal..." required>
+                </div>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="input-group" style="flex: 1; margin: 0;">
+                        <input type="text" id="articleCategory" placeholder="Categoria (Ex: Política, Esportes)" required>
+                    </div>
+                    <div class="input-group" style="flex: 2; margin: 0;">
+                        <input type="file" id="articleImage" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <textarea id="articleContent" placeholder="Escreva a íntegra da reportagem aqui..." style="height: 200px; resize: vertical;" required></textarea>
+                </div>
+                <button type="submit" id="submitNewsBtn" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 1rem; margin-top: 10px;">
+                    Publicar Matéria
+                </button>
+            </form>
         </div>
     </div>
 
@@ -1054,28 +1716,285 @@
             token: localStorage.getItem('token') || null,
             posts: [],
             activeChatUser: null,
-            selectedMusic: null
+            selectedMusic: null,
+                conversations: []
         };
 
         const socket = io();
+        
+        const auth = {
+            async login() {
+                const username = document.getElementById('loginUser').value;
+                const password = document.getElementById('loginPass').value;
+                try {
+                    const res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        window.location.reload();
+                    } else {
+                        showToast(data.error || 'Credenciais inválidas');
+                    }
+                } catch (e) { showToast('Erro no login'); }
+            },
+            async register() {
+                const fullName = document.getElementById('regName').value;
+                const username = document.getElementById('regUser').value;
+                const password = document.getElementById('regPass').value;
+                try {
+                    const res = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fullName, username, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        window.location.reload();
+                    } else {
+                        showToast(data.error || 'Erro no cadastro');
+                    }
+                } catch (e) { showToast('Erro no cadastro'); }
+            },
+            logout() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.reload();
+            }
+        };
+
+
+        const api = {
+            async fetchPosts() {
+                const res = await fetch('/api/posts', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                state.posts = await res.json();
+                ui.renderPosts();
+            },
+            async toggleLike(postId) {
+                await fetch(`/api/posts/${postId}/like`, { method: 'POST', headers: { 'Authorization': `Bearer ${state.token}` } });
+                this.fetchPosts();
+            },
+            async addComment(postId, text) {
+                await fetch(`/api/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+                    body: JSON.stringify({ text })
+                });
+                document.getElementById('sheetCommentInput').value = '';
+                ui.showCommentsModal(postId);
+            },
+            async getUsers(includeFakes = false) {
+                const res = await fetch(`/api/users${includeFakes ? '?includeFakes=true' : ''}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                return await res.json();
+            },
+            async getMessages(userId) {
+                const res = await fetch(`/api/messages/${userId}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                return await res.json();
+            },
+            async getGroupMessages(convId) {
+                const res = await fetch(`/api/conversations/${convId}/messages`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                return await res.json();
+            },
+            async handleTyping() {
+                socket.emit('typing', { recipientId: state.activeChatUser?.id });
+            },
+            async publishPost(postId) {
+                if(!confirm('Deseja publicar este rascunho agora?')) return;
+                try {
+                    const res = await fetch(`/api/posts/${postId}`, {
+                        method: 'PUT',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${state.token}` 
+                        },
+                        body: JSON.stringify({ status: 'published' })
+                    });
+                    if(res.ok) {
+                        showToast('Post publicado com sucesso! 🚀');
+                        this.fetchPosts();
+                    } else {
+                        const err = await res.json();
+                        showToast('Erro ao publicar: ' + (err.error || 'Erro desconhecido'));
+                    }
+                } catch(e) {
+                    console.error('Publish error:', e);
+                    showToast('Erro técnico ao publicar.');
+                }
+            }
+        };
+
+        const aiAssistant = {
+            messages: [],
+            isThinking: false,
+            isOpen: false,
+            toggle() {
+                const sidebar = document.getElementById('aiSidebar');
+                const mainArea = document.getElementById('builderMainArea');
+                if(!sidebar) return;
+                
+                this.isOpen = !this.isOpen;
+                if(this.isOpen) {
+                    sidebar.style.width = '350px';
+                    sidebar.style.minWidth = '350px';
+                    this.updateTokenDisplay();
+                } else {
+                    sidebar.style.width = '0';
+                    sidebar.style.minWidth = '0';
+                }
+            },
+            async updateTokenDisplay() {
+                const res = await fetch('/api/user/me', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const user = await res.json();
+                const el = document.getElementById('aiTokenDisplay');
+                if(el) el.innerHTML = `<i class="fa-solid fa-bolt"></i> ${user.iaTokens || 0} tokens`;
+            },
+            async send() {
+                const input = document.getElementById('aiInput');
+                const text = input.value.trim();
+                if(!text || this.isThinking) return;
+
+                this.messages.push({ role: 'user', content: text });
+                input.value = '';
+                this.isThinking = true;
+                this.render();
+
+                try {
+                    const res = await fetch('/api/ai/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+                        body: JSON.stringify({ messages: this.messages, currentLayout: builder.blocks })
+                    });
+                    
+                    if(!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.message || 'Erro na IA');
+                    }
+
+                    const data = await res.json();
+                    
+                    // If trigger indicates deep thinking needed
+                    if (data.trigger === 'pesquisa' || data.trigger === 'vision' || data.trigger === 'youtube') {
+                        const loaderText = document.querySelector('.typing-loader + small');
+                        if (loaderText) loaderText.innerText = 'Mestre IA está consultando fontes profundas...';
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+
+                    this.messages.push({ role: 'ai', content: data.message });
+                    
+                    if(data.layout && data.layout.length > 0) {
+                        builder.blocks = data.layout;
+                        builder.renderAll();
+                        showToast('Layout atualizado pelo Mestre! ✨');
+                    }
+
+                    this.updateTokenDisplay();
+                } catch (e) {
+                    this.messages.push({ role: 'ai', content: '❌ ' + e.message });
+                } finally {
+                    this.isThinking = false;
+                    this.render();
+                }
+            },
+            render() {
+                const chatArea = document.getElementById('aiChatMessages');
+                if(!chatArea) return;
+
+                chatArea.innerHTML = this.messages.map(m => `
+                    <div class="message-container ${m.role === 'user' ? 'is-mine' : ''}" style="display: flex; flex-direction: column; align-items: ${m.role === 'user' ? 'flex-end' : 'flex-start'}; gap: 5px;">
+                        <div class="ai-bubble" style="background: ${m.role === 'user' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)'}">
+                            ${m.content}
+                        </div>
+                    </div>
+                `).join('');
+
+                if(this.isThinking) {
+                    chatArea.innerHTML += `
+                        <div class="message-container">
+                            <div class="ai-bubble" style="background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px;">
+                                <div class="typing-loader"></div> <span>Pesquisando...</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }
+        };
 
         // UI Controller
         const ui = {
+            initScrollReveal() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                    });
+                }, { threshold: 0.1 });
+                document.querySelectorAll('[class^="anim-"]').forEach(el => observer.observe(el));
+            },
             async showPage(pageId) {
                 document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-                document.getElementById(pageId).classList.remove('hidden');
+                const page = document.getElementById(pageId);
+                page.classList.remove('hidden');
+                page.classList.add('page-transition-fade');
                 
                 document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
                 
                 if(pageId === 'feedPage') document.querySelectorAll('.nav-item')[0].classList.add('active');
                 if(pageId === 'messagesPage') {
                     document.querySelectorAll('.nav-item')[2].classList.add('active');
+                    document.getElementById('dmNotification').style.display = 'none';
                     this.renderMessagesPage();
+                    notes.fetch();
+                }
+                if(pageId === 'searchPage') {
+                    document.querySelectorAll('.nav-item')[1].classList.add('active');
+                    search.init();
+                }
+                if(pageId === 'adminPage') {
+                    const adminTab = document.getElementById('adminNavItem');
+                    if(adminTab) adminTab.classList.add('active');
+                    admin.load();
                 }
                 if(pageId === 'profilePage') {
-                    const profileIcon = document.querySelectorAll('.nav-item')[3];
+                    const profileIcon = document.querySelectorAll('.nav-item').item(document.querySelectorAll('.nav-item').length - 1);
                     if (profileIcon) profileIcon.classList.add('active');
                 }
+                this.initScrollReveal();
+            },
+            initNav() {
+                const adminTab = document.getElementById('adminNavItem');
+                if(adminTab && state.user && state.user.isAdmin) {
+                    adminTab.classList.remove('hidden');
+                } else if(adminTab) {
+                    adminTab.classList.add('hidden');
+                }
+            },
+            toggleNotifPanel() {
+                const panel = document.getElementById('notifPanel');
+                const overlay = document.getElementById('notifOverlay');
+                const isOpen = panel.classList.toggle('open');
+                overlay.style.display = isOpen ? 'block' : 'none';
+                if(isOpen) this.fetchNotifications();
+            },
+            async fetchNotifications() {
+                const res = await fetch('/api/notifications', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const list = await res.json();
+                const container = document.getElementById('notifList');
+                container.innerHTML = list.map(n => `
+                    <div class="notif-item">
+                        <img src="${getAvatar(n.sender.username, n.sender.avatar)}" onclick="ui.viewProfile('${n.sender._id}'); ui.toggleNotifPanel()">
+                        <div class="notif-text">
+                            <b>${n.sender.username}</b> ${n.type === 'FOLLOW' ? 'começou a te seguir.' : n.type === 'LIKE' ? 'curtiu seu post.' : 'comentou no seu post.'}
+                            <span class="notif-time">${new Date(n.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `).join('') || '<p style="text-align:center;color:var(--secondary-text);padding-top:40px;">Nenhuma atividade recente.</p>';
             },
             goToHome() {
                 this.showPage('feedPage');
@@ -1183,6 +2102,12 @@
                 avatarImg.onerror = () => avatarImg.src = getInitials(username);
                 
                 document.getElementById('profileFullName').innerText = profile.fullName || username;
+                if(profile.isVerified) {
+                    document.getElementById('profileFullName').innerHTML += ' <i class="fa-solid fa-circle-check verified-badge"></i>';
+                }
+                if(profile.isFake) {
+                    document.getElementById('profileFullName').innerHTML += ' <span class="badge-system">SISTEMA</span>';
+                }
                 document.getElementById('profileBio').innerText = profile.bio || 'Sem biografia.';
                 
                 // Stats Upgrade
@@ -1212,8 +2137,8 @@
                     const followText = profile.isFollowing ? 'Seguindo' : 'Seguir';
                     const followClass = profile.isFollowing ? 'btn-logout-v2' : 'btn-edit-v2';
                     actions.innerHTML = `
-                        <button class="btn-profile-v2 ${followClass}" id="followBtn" onclick="ui.toggleFollow('${profile._id}')" style="flex: 2; justify-content: center;">${followText}</button>
-                        <button class="btn-profile-v2" onclick="ui.openChat('${profile._id}', '${profile.username}', '${profile.avatar || ''}')" style="flex: 1; justify-content: center; background: rgba(255,255,255,0.05); color:white;"><i class="fa-regular fa-paper-plane"></i></button>
+                        <button class="btn-profile-v2 ${followClass}" id="followBtn" onclick="ui.toggleFollow('${profile._id}')" style="justify-content: center;">${followText}</button>
+                        <button class="btn-profile-v2" onclick="ui.openChat('${profile._id}', '${profile.username}', '${profile.avatar || ''}')" style="justify-content: center; background: rgba(255,255,255,0.05); color:white;"><i class="fa-regular fa-paper-plane"></i></button>
                     `;
                 }
 
@@ -1234,6 +2159,7 @@
 
                     return `
                         <div class="grid-item" onclick="ui.showPostDetail('${p._id}')">
+                            ${p.status === 'draft' ? `<div class="grid-item-type-icon" style="right: 40px; background: #ffa500;"><i class="fa-solid fa-file-pen"></i></div>` : ''}
                             ${typeIcon ? `<div class="grid-item-type-icon">${typeIcon}</div>` : ''}
                             <img src="${previewUrl}" alt="Post">
                             <div class="grid-item-overlay">
@@ -1242,6 +2168,7 @@
                         </div>
                     `;
                 }).join('');
+                this.initScrollReveal();
             },
             async toggleFollow(userId) {
                 const btn = document.getElementById('followBtn');
@@ -1268,28 +2195,12 @@
                 const box = document.getElementById('followUsersList');
                 
                 let displayList = [...(list || [])];
-                
-                // [SOCIAL PROOF] If it's the followers list, add some realistic-looking virtual followers
-                // to match the social proof numbers without saving millions of users to DB.
-                if (type === 'followers' && displayList.length < 50) {
-                    const virtualNames = ["Gabriel Silva", "Lucas Santos", "Matheus Oliveira", "Pedro Costa", "Enzo Pereira", "João Ferreira", "Vitor Rodrigues", "Vinicius Almeida", "Arthur Nascimento", "Mariana Souza", "Beatriz Lima", "Julia Carvalho", "Ana Clara", "Laura Gomes", "Alice Martins", "Manuela Rocha", "Sophia Barbosa", "Helena Castro", "Isabella Mendes", "Valentina Vieira"];
-                    const count = Math.min(20, 50 - displayList.length);
-                    for (let i = 0; i < count; i++) {
-                        const name = virtualNames[Math.floor(Math.random() * virtualNames.length)];
-                        displayList.push({
-                            _id: 'virtual_' + i,
-                            username: name.toLowerCase().replace(' ', '_') + Math.floor(Math.random() * 999),
-                            fullName: name,
-                            avatar: `https://i.pravatar.cc/150?u=${i + Math.random()}`
-                        });
-                    }
-                }
 
                 box.innerHTML = displayList.map(u => `
-                    <div class="share-user-item" onclick="${u._id.startsWith('virtual') ? '' : `ui.closeModal('followListModal'); ui.viewProfile('${u._id}')`}">
+                    <div class="share-user-item" onclick="ui.closeModal('followListModal'); ui.viewProfile('${u._id}')">
                         <img src="${getAvatar(u.username, u.avatar)}">
                         <div>
-                            <div style="font-weight: 600;">${u.username} ${u._id.startsWith('virtual') ? '<i class="fa-solid fa-circle-check" style="color: #1DA1F2; font-size: 0.7rem;"></i>' : ''}</div>
+                            <div style="font-weight: 600;">${u.username}</div>
                             <div style="font-size: 0.75rem; color: var(--secondary-text);">${u.fullName || ''}</div>
                         </div>
                     </div>
@@ -1341,27 +2252,114 @@
                 this.showModal('shareModal');
             },
             async renderMessagesPage() {
-                const users = await api.getUsers();
                 const list = document.getElementById('usersListMessages');
-                list.innerHTML = users.map(u => {
-                    const av = getAvatar(u.username, u.avatar);
+                
+                try {
+                    const convRes = await fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                    
+                    if (!convRes.ok) {
+                        const errTxt = await convRes.text();
+                        console.error('SERVER RETURNED ERROR:', convRes.status, errTxt.substring(0, 300));
+                        throw new Error(`Server returned ${convRes.status}`);
+                    }
+
+                    const contentType = convRes.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const htmlSample = await convRes.text();
+                        console.error('CRITICAL: Server returned HTML instead of JSON for /api/conversations. Check backend routes.');
+                        console.error('HTML Snippet:', htmlSample.substring(0, 500));
+                        throw new Error('Formato de resposta inesperado (HTML recebido instead of JSON)');
+                    }
+
+                    const conversations = await convRes.json();
+                    state.conversations = conversations; // Store for filtering
+
+                    if (conversations.length === 0) {
+                        list.innerHTML = '<p style="text-align:center; color:var(--secondary-text); margin-top:20px; font-size:0.8rem;">Nenhuma conversa ativa.<br>Siga alguém e envie uma mensagem!</p>';
+                        return;
+                    }
+
+                    this.displayConversations(conversations);
+                } catch(e) {
+                    console.error('RENDER MESSAGES ERROR:', e);
+                    list.innerHTML = `<p style="text-align:center; color:var(--accent-color); font-size:0.8rem;">Erro ao carregar mensagens.<br><small>${e.message}</small></p>`;
+                }
+            },
+            displayConversations(conversations) {
+                const list = document.getElementById('usersListMessages');
+                list.innerHTML = conversations.map(c => {
+                    const isGroup = c.isGroup === true;
+                    const u = c.user || { username: 'Usuário', avatar: '' }; // Fallback
+                    
+                    const title = isGroup ? (c.name || 'Grupo sem nome') : u.username;
+                    const av = isGroup ? 'https://cdn-icons-png.flaticon.com/512/166/166258.png' : getAvatar(u.username, u.avatar);
+                    const lastMsg = c.lastMessage ? c.lastMessage.content : 'Clique para conversar';
+                    const time = c.lastMessage ? new Date(c.lastMessage.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+                    const badge = isGroup ? '<span class="badge-system" style="background:#555;">GRUPO</span>' : (u.isFake ? '<span class="badge-system">SISTEMA</span>' : '');
+
                     return `
                     <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid var(--glass-border); cursor: pointer;" 
-                         onclick="ui.openChat('${u._id}', '${u.username}', '${u.avatar || ''}')">
-                        <img src="${av}" onerror="this.src=getAvatar('${u.username}','')" class="post-avatar" style="width: 50px; height: 50px;">
-                        <div>
-                            <h4 style="font-size: 1rem;">${u.username}</h4>
-                            <p style="font-size: 0.8rem; color: var(--secondary-text);">Clique para conversar</p>
+                         onclick="${isGroup ? `ui.openGroupChat('${c._id}', '${title}')` : `ui.openChat('${u._id}', '${u.username}', '${u.avatar || ''}')`}">
+                        <div style="position: relative;">
+                            <img src="${av}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/166/166258.png'" class="post-avatar" style="width: 55px; height: 55px;">
+                            ${!isGroup && u.isFake ? '<span style="position:absolute; bottom:0; right:0; background:var(--accent-color); font-size:0.5rem; padding:2px 4px; border-radius:4px; font-weight:800;">ADM</span>' : ''}
+                        </div>
+                        <div style="flex: 1; overflow: hidden;">
+                            <h4 style="font-size: 0.95rem; display: flex; align-items: center; gap: 5px;">
+                                ${title} ${badge}
+                                <span style="margin-left: auto; font-size: 0.7rem; color: var(--secondary-text); font-weight: 400;">${time}</span>
+                            </h4>
+                            <p style="font-size: 0.8rem; color: var(--secondary-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px;">${lastMsg}</p>
                         </div>
                     </div>`;
                 }).join('');
             },
+            async showGroupCreateModal() {
+                const users = await api.getUsers();
+                const list = document.getElementById('groupDMParticipantsList');
+                list.innerHTML = users.filter(u => u._id !== state.user.id).map(u => `
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.03);">
+                        <input type="checkbox" class="group-participant-check" value="${u._id}" style="width: 18px; height: 18px; cursor:pointer;">
+                        <img src="${getAvatar(u.username, u.avatar)}" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <span style="font-size: 0.9rem;">${u.username}</span>
+                    </div>
+                `).join('') || '<p style="text-align:center; font-size: 0.8rem; color: var(--secondary-text);">Nenhum usuário disponível.</p>';
+                this.showModal('groupDMModal');
+            },
+            async openGroupChat(conversationId, title) {
+                state.activeChatUser = null;
+                state.activeConversationId = conversationId;
+                document.getElementById('chatUserName').innerText = title;
+                const headerAvatar = document.getElementById('chatUserAvatar');
+                headerAvatar.src = 'https://cdn-icons-png.flaticon.com/512/166/166258.png';
+                document.getElementById('btnLeaveGroup').classList.remove('hidden');
+                
+                this.showPage('chatPage');
+                const messages = await api.getGroupMessages(conversationId);
+                this.renderChatMessages(messages);
+            },
+            filterDirect() {
+                const q = document.getElementById('directSearchInput').value.toLowerCase();
+                if(!state.conversations) return;
+                const filtered = state.conversations.filter(c => 
+                    c.user.username.toLowerCase().includes(q) || 
+                    c.user.fullName.toLowerCase().includes(q)
+                );
+                this.displayConversations(filtered);
+            },
             async openChat(userId, username, avatarUrl) {
                 state.activeChatUser = { id: userId, username, avatar: avatarUrl };
+                state.activeConversationId = null; // Clear group ID
                 document.getElementById('chatUserName').innerText = username;
+                document.getElementById('btnLeaveGroup').classList.add('hidden');
                 const headerAvatar = document.getElementById('chatUserAvatar');
                 headerAvatar.src = getAvatar(username, avatarUrl);
                 headerAvatar.onerror = () => headerAvatar.src = getInitials(username);
+                
+                // Typing Event
+                const input = document.getElementById('chatInput');
+                input.oninput = () => api.handleTyping();
+                
                 this.showPage('chatPage');
                 const messages = await api.getMessages(userId);
                 this.renderChatMessages(messages);
@@ -1369,18 +2367,20 @@
             renderChatMessages(messages) {
                 const chatArea = document.getElementById('chatMessages');
                 chatArea.innerHTML = messages.map(m => {
-                    const isMine = m.sender === state.user.id;
-                    const pName = state.activeChatUser.username;
-                    const pAvatar = state.activeChatUser.avatar;
+                    const isMine = m.sender._id ? (m.sender._id === state.user.id) : (m.sender === state.user.id);
+                    const sender = m.sender_details || { username: state.activeChatUser?.username || 'Sistema', avatar: state.activeChatUser?.avatar || '' };
+                    
                     return `
-                    <div style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'}; gap: 5px;">
+                    <div class="message-container ${isMine ? 'is-mine' : ''}" style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'}; gap: 5px;">
+                        ${!isMine && state.activeConversationId ? `<small style="font-size: 0.65rem; color: var(--secondary-text); margin-left: 35px;">${sender.username}</small>` : ''}
                         <div style="display: flex; align-items: flex-end; gap: 8px; flex-direction: ${isMine ? 'row-reverse' : 'row'}">
-                            ${!isMine ? `<img src="${getAvatar(pName, pAvatar)}" onerror="this.src=getInitials('${pName}')" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">` : ''}
+                            ${!isMine ? `<img src="${getAvatar(sender.username, sender.avatar)}" onerror="this.src=getInitials('${sender.username}')" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">` : ''}
                             <div style="background: ${isMine ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)'}; 
-                                        padding: 10px 15px; border-radius: 15px; max-width: 250px; font-size: 0.9rem; color: #fff;">
+                                        padding: 10px 15px; border-radius: 15px; max-width: 250px; font-size: 0.9rem; color: #fff; position: relative;">
                                 ${m.content}
                             </div>
                         </div>
+                        ${isMine ? `<span class="msg-delete-btn" onclick="ui.deleteMessage('${m._id}')"><i class="fa-solid fa-trash-can"></i> Cancelar Envio</span>` : ''}
                     </div>`;
                 }).join('');
                 chatArea.scrollTop = chatArea.scrollHeight;
@@ -1404,23 +2404,96 @@
                 `).join('');
             },
             async showPostDetail(postId) {
-                const post = state.posts.find(p => p._id === postId) || await (await fetch(`/api/posts/${postId}`)).json();
-                const content = document.getElementById('postDetailContent');
-                content.innerHTML = `
-                    <div class="post" style="margin-bottom: 0;">
-                        <div class="post-header">
-                            <div class="post-user">
-                                <img src="${post.user.avatar}" class="post-avatar">
-                                <h4>${post.user.username}</h4>
+                try {
+                    const res = await fetch(`/api/posts/${postId}`, {
+                        headers: { 'Authorization': `Bearer ${state.token}` }
+                    });
+                    const post = await res.json();
+                    
+                    // Register View
+                    if(state.user && post.user._id !== state.user.id) {
+                        fetch(`/api/posts/${postId}/view`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${state.token}` }
+                        });
+                    }
+
+                    const content = document.getElementById('postDetailContent');
+                    content.innerHTML = `
+                        <div class="post" style="margin-bottom: 0;">
+                            <div class="post-header" style="padding: 15px;">
+                                <div class="post-user" onclick="ui.viewProfile('${post.user._id}')" style="cursor:pointer; display: flex; align-items: center; gap: 10px;">
+                                    <img src="${getAvatar(post.user.username, post.user.avatar)}" class="post-avatar">
+                                    <div class="post-info">
+                                        <h4 style="font-size: 0.9rem; font-weight: 600;">${post.user.username}</h4>
+                                        <p style="font-size: 0.7rem; color: var(--secondary-text);">${new Date(post.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            ${post.isBuilderBlog ? `
+                                <div style="padding: 20px; background: ${post.globalBg || 'transparent'};">
+                                    ${this.renderBuilderPost(post)}
+                                </div>
+                            ` : `
+                                <div class="post-media" style="position: relative;">
+                                    ${post.media && post.media[0] ? (post.media[0].type === 'video' ? 
+                                        `<video src="${post.media[0].url}" controls style="width: 100%; border-radius: 0;"></video>` : 
+                                        `<img src="${post.media[0].url}" style="width: 100%; border-radius: 0;">`) : ''
+                                    }
+                                </div>
+                                <div class="post-details" style="padding: 15px;">
+                                    <p class="caption"><span>${post.user.username}</span> ${post.caption}</p>
+                                    ${post.description ? `<p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.8;">${post.description}</p>` : ''}
+                                </div>
+                            `}
+
+                            <div class="post-details" style="padding: 0 15px 15px 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                                    <p style="font-weight: 700; font-size: 0.85rem; margin: 0;">
+                                        <i class="fa-regular fa-eye" style="margin-right: 5px; color: var(--accent-color);"></i> ${post.views?.length || 0} visualizações
+                                    </p>
+                                </div>
+                                <p style="font-size: 0.65rem; color: var(--secondary-text); word-break: break-all; opacity: 0.5;">ID: ${post._id}</p>
                             </div>
                         </div>
-                        <img src="${post.media[0].url}" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;">
-                        <div class="post-details">
-                            <p class="caption"><span>${post.user.username}</span> ${post.caption}</p>
+                    `;
+
+                    state.currentDetailPostId = postId;
+                    this.showModal('postDetailModal');
+                    setTimeout(() => this.initScrollReveal(), 100);
+                } catch(e) { console.error(e); showToast('Falha ao carregar detalhes do post'); }
+            },
+            async showViewersList() {
+                if(!state.currentDetailPostId) return;
+                const res = await fetch(`/api/posts/${state.currentDetailPostId}/viewers`, {
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+                const list = await res.json();
+                const box = document.getElementById('viewersUsersList');
+                box.innerHTML = list.map(u => `
+                    <div class="share-user-item" onclick="ui.closeModal('viewersListModal'); ui.viewProfile('${u._id}')">
+                        <img src="${getAvatar(u.username, u.avatar)}">
+                        <div>
+                            <div style="font-weight: 600;">${u.username}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-text);">${u.fullName || ''}</div>
                         </div>
                     </div>
-                `;
-                this.showModal('postDetailModal');
+                `).join('') || `<p style="text-align:center; padding: 20px;">Nenhuma visualização registrada ainda.</p>`;
+                this.showModal('viewersListModal');
+            },
+            async deleteMessage(messageId) {
+                if(!confirm('Deseja cancelar o envio desta mensagem?')) return;
+                const res = await fetch(`/api/messages/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+                if(res.ok) {
+                    if(state.activeChatUser) {
+                        const msgs = await api.getMessages(state.activeChatUser.id);
+                        this.renderChatMessages(msgs);
+                    }
+                }
             },
             renderPosts() {
                 const list = document.getElementById('postsList');
@@ -1428,796 +2501,462 @@
                     list.innerHTML = '<p style="text-align: center; color: var(--secondary-text); margin-top: 50px;">Nenhuma postagem ainda.</p>';
                     return;
                 }
-                try {
-                    list.innerHTML = state.posts.map(post => {
-                        if(!post.user) return ''; // Skip posts with invalid users
+                
+                const getBuilderBlogCardHtml = (post) => {
+                    let bTitle = post.groupName || 'Reportagem';
+                    let bImg = 'https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=2069&auto=format&fit=crop';
+                    if (post.layout && post.layout.length > 0) {
+                        const tBlock = post.layout.find(b => b.type === 'title');
+                        if (tBlock) bTitle = tBlock.content;
+                        const iBlock = post.layout.find(b => b.type === 'img' || b.type === 'hero');
+                        if (iBlock) bImg = iBlock.content;
+                    }
                     return `
-                    <div class="post-card glass" style="overflow: hidden; margin-bottom: 25px;">
-                        <div class="post-header" style="padding: 12px 15px; border-bottom: 1px solid var(--glass-border);">
-                            <div class="post-user" onclick="ui.viewProfile('${post.user._id}')" style="cursor:pointer; display: flex; align-items: center; gap: 10px;">
-                                <img src="${getAvatar(post.user.username, post.user.avatar)}" class="post-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                                <div class="post-info">
-                                    <h4 style="font-size: 0.9rem; font-weight: 600;">${post.user.username}</h4>
-                                    <p style="font-size: 0.7rem; color: var(--secondary-text);">${new Date(post.createdAt).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 15px; align-items: center;">
-                                ${post.user._id === state.user.id ? `<i class="fa-regular fa-trash-can btn-delete" onclick="api.deletePost('${post._id}')"></i>` : ''}
-                                <i class="fa-solid fa-ellipsis"></i>
+                    <div style="position: relative; border-radius: 20px; overflow: hidden; margin-bottom: 10px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" onclick="window.location.href='/blog.html?postId=${post._id}'">
+                        <img src="${bImg}" style="width: 100%; height: 350px; object-fit: cover; display: block; border-radius: 20px;">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.95) 80%); padding: 30px 20px 20px 20px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;">
+                            <h2 style="font-family: 'Outfit'; font-weight: 800; font-size: 1.6rem; color: white; line-height: 1.1; margin-bottom: 8px; text-shadow: 2px 2px 5px rgba(0,0,0,0.5);">${bTitle}</h2>
+                            <div style="display: flex; align-items: center; gap: 15px; font-size: 0.8rem; color: var(--secondary-text);">
+                                <span style="display: flex; align-items: center; gap: 5px; color: white;"><img src="${getAvatar(post.user?.username, post.user?.avatar)}" style="width: 18px; height: 18px; border-radius: 50%;"> ${post.user?.username || 'user'}</span>
+                                <span>•</span>
+                                <span>${new Date(post.createdAt).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span><i class="fa-regular fa-eye"></i> ${post.views ? post.views.length : 0}</span>
                             </div>
                         </div>
+                    </div>`;
+                };
 
-                        ${post.isBuilderBlog ? this.renderBuilderPost(post) : `
-                            ${post.title ? `
-                            <div style="padding: 15px; text-align: center;">
-                                <h2 style="font-weight: 800; font-size: 1.3rem; color: var(--accent-color); line-height: 1.2;">${post.title}</h2>
-                            </div>` : ''}
-
-                            <div class="post-media" style="position: relative;">
-                                ${post.media && post.media[0] ? (post.media[0].type === 'video' ? 
-                                    `<video src="${post.media[0].url}" controls style="width: 100%; border-radius: 0;"></video>` : 
-                                    `<img src="${post.media[0].url}" style="width: 100%; border-radius: 0;">`) : ''
-                                }
-                            </div>
-                        `}
-
-                        <div class="post-actions" style="padding: 12px 15px 5px 15px;">
-                            <div class="action-btns" style="display: flex; gap: 18px; font-size: 1.4rem;">
-                                <i class="${post.likes.includes(state.user.id) ? 'fa-solid' : 'fa-regular'} fa-heart" 
-                                   style="color: ${post.likes.includes(state.user.id) ? 'var(--accent-color)' : ''}; cursor: pointer;" 
-                                   onclick="api.toggleLike('${post._id}')"></i>
-                                <i class="fa-regular fa-comment" style="cursor: pointer;" onclick="ui.showCommentsModal('${post._id}')"></i>
-                                <i class="fa-regular fa-paper-plane" style="cursor: pointer;" onclick="ui.showShareModal('${post._id}')"></i>
-                            </div>
-                        </div>
-
-                        <div class="post-details" style="padding: 0 15px 15px 15px;">
-                            <p class="likes-count" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 5px;">${post.likes.length} curtidas</p>
-                            
-                            ${post.isBuilderBlog ? `
-                                <div class="glass" style="padding: 12px; margin-top: 12px; border-left: 3px solid var(--accent-color); border-radius: 10px;">
-                                    <p style="font-size: 0.8rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 8px;">
-                                        <i class="fa-solid fa-users" style="color: var(--accent-color);"></i> ${post.groupName}
-                                    </p>
-                                    <div style="font-size: 0.75rem; color: var(--secondary-text); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px;">
-                                        <span style="font-weight: 600;">Integrantes:</span> 
-                                        ${post.participants.map(p => `<span style="color: var(--accent-color); cursor: pointer; text-decoration: underline;" onclick="ui.viewProfile('${p._id || p}')">${p.fullName || p.username || 'Membro'}</span>`).join(', ')}
+                try {
+                    if (!Array.isArray(state.posts)) {
+                        list.innerHTML = '<p style="text-align: center; color: var(--secondary-text); margin-top: 50px;">Nenhuma postagem ainda.</p>';
+                        return;
+                    }
+                    list.innerHTML = state.posts.map(post => {
+                        if(!post.user) return ''; 
+                        return `
+                        <div class="post-card glass" style="overflow: hidden; margin-bottom: 25px;">
+                            <div class="post-header" style="padding: 12px 15px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                                <div class="post-user" onclick="ui.viewProfile('${post.user._id}')" style="cursor:pointer; display: flex; align-items: center; gap: 10px;">
+                                    <img src="${getAvatar(post.user.username, post.user.avatar)}" class="post-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                                    <div class="post-info">
+                                        <h4 style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center;">
+                                            ${post.user.username} ${post.user.isFake ? '<span class="badge-system">SISTEMA</span>' : ''}
+                                        </h4>
+                                        <p style="font-size: 0.7rem; color: var(--secondary-text);">${new Date(post.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
-                            ` : `
-                                <p class="caption" style="font-size: 0.9rem; line-height: 1.4;"><span style="font-weight: 700; margin-right: 5px; cursor: pointer;" onclick="ui.viewProfile('${post.user._id}')">${post.user.username}</span> ${post.caption}</p>
-                                ${post.description ? `<p style="font-size: 0.9rem; color: var(--text-color); opacity: 0.9; line-height: 1.5; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 10px;">${post.description}</p>` : ''}
+                                <div style="position: relative;">
+                                    <i class="fa-solid fa-ellipsis" style="cursor: pointer; padding: 5px;" onclick="ui.togglePostMenu('${post._id}')"></i>
+                                    <div id="post-menu-${post._id}" class="post-options-menu glass">
+                                        ${post.status === 'draft' ? `<div class="post-options-item" onclick="api.publishPost('${post._id}')" style="color: var(--accent-color); font-weight: 700;"><i class="fa-solid fa-paper-plane"></i> PUBLICAR</div>` : ''}
+                                        <div class="post-options-item" onclick="ui.copyPostId('${post._id}')"><i class="fa-solid fa-copy"></i> Copiar ID</div>
+                                        <div class="post-options-item" onclick="ui.togglePostMenu('${post._id}')" style="color: var(--secondary-text);"><i class="fa-solid fa-xmark"></i> Fechar</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${post.isBuilderBlog ? getBuilderBlogCardHtml(post) : `
+                                <div class="post-media" style="position: relative;">
+                                    ${post.media && post.media[0] ? (post.media[0].type === 'video' ? 
+                                        `<video src="${post.media[0].url}" controls style="width: 100%; border-radius: 0;"></video>` : 
+                                        `<img src="${post.media[0].url}" style="width: 100%; border-radius: 0;">`) : ''
+                                    }
+                                </div>
                             `}
 
-                            ${post.adminNote ? `
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(255, 62, 62, 0.08); border-left: 3px solid var(--accent-color); border-radius: 8px;">
-                                <small style="display: block; font-weight: 800; color: var(--accent-color); font-size: 0.65rem; text-transform: uppercase; margin-bottom: 4px;">Nota do Administrador</small>
-                                <p style="font-size: 0.85rem; font-style: italic; color: var(--text-color);">${post.adminNote}</p>
-                            </div>` : ''}
-
-                            ${state.user.isAdmin ? `<button onclick="api.updateAdminNote('${post._id}')" style="background: transparent; border: 1px dashed var(--accent-color); color: var(--accent-color); font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; margin-top: 10px; cursor: pointer;"><i class="fa-solid fa-pen-to-square"></i> Editar Nota do Admin</button>` : ''}
-
-                            ${post.music && post.music.previewUrl ? `
-                            <div class="music-player" style="margin-top: 12px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
-                                <i class="fa-solid fa-music" style="color:var(--accent-color); font-size: 0.9rem;"></i>
-                                <div class="track-info" style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.8rem;">
-                                    <b style="color: var(--text-color);">${post.music.title || ''}</b> - ${post.music.artist || ''}
+                            <div class="post-actions" style="padding: 12px 15px 5px 15px;">
+                                <div class="action-btns" style="display: flex; gap: 18px; font-size: 1.4rem;">
+                                    <i class="${post.likes.includes(state.user.id) ? 'fa-solid' : 'fa-regular'} fa-heart" 
+                                       style="color: ${post.likes.includes(state.user.id) ? 'var(--accent-color)' : ''}; cursor: pointer;" 
+                                       onclick="api.toggleLike('${post._id}')"></i>
+                                    <i class="fa-regular fa-comment" style="cursor: pointer;" onclick="ui.showCommentsModal('${post._id}')"></i>
                                 </div>
-                                <audio src="${post.music.previewUrl}" controls style="height: 24px; width: 120px;"></audio>
-                            </div>` : ''}
-                            
-                            <p style="font-size: 0.8rem; color: var(--secondary-text); margin-top: 12px; cursor: pointer; display: inline-block;" onclick="ui.showCommentsModal('${post._id}')">
-                                Ver todos os ${post.comments?.length || 0} comentários
-                            </p>
-                        </div>
-                    </div>
-                `;
+                            </div>
+
+                            <div class="post-details" style="padding: 0 15px 15px 15px;">
+                                <p class="likes-count" style="font-weight: 600; font-size: 0.85rem; margin: 0 0 8px 0;">${post.likes.length} curtidas</p>
+                                <p class="caption" style="font-size: 0.9rem; line-height: 1.4;"><span style="font-weight: 700; margin-right: 5px; cursor: pointer;" onclick="ui.viewProfile('${post.user._id}')">${post.user.username}</span> ${post.caption || ''}</p>
+                                ${post.status === 'draft' ? `
+                                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dotted var(--glass-border); display: flex; align-items: center; justify-content: space-between;">
+                                        <span class="badge-system" style="background: rgba(255,165,0,0.2); color: #ffa500; border: 1px solid #ffa500; padding: 4px 8px; font-size: 0.7rem; font-weight: 800; border-radius: 6px;">
+                                            <i class="fa-solid fa-file-pen"></i> RASCUNHO
+                                        </span>
+                                        <button class="btn-primary" style="width: auto; padding: 6px 15px; font-size: 0.8rem; border-radius: 8px;" onclick="api.publishPost('${post._id}')">
+                                            <i class="fa-solid fa-paper-plane"></i> Publicar Agora
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>`;
                     }).join('');
+                    ui.initScrollReveal();
                 } catch (e) {
                     console.error('Error rendering posts:', e);
                     list.innerHTML = '<p style="text-align: center; color: var(--accent-color); margin-top: 50px;">Erro ao carregar o feed.</p>';
                 }
             },
 
+            goToPostGroup(postId) {
+                const post = state.posts.find(p => p._id === postId);
+                if (post && post.user) {
+                    ui.showPage('messagesPage');
+                    ui.openChat(post.user._id, post.user.username, post.user.avatar);
+                    this.togglePostMenu(postId);
+                }
+            },
+            togglePostMenu(postId) {
+                const el = document.getElementById(`post-menu-${postId}`);
+                if (!el) return;
+                const isOpen = el.classList.contains('open');
+                document.querySelectorAll('.post-options-menu').forEach(m => m.classList.remove('open'));
+                if(!isOpen) el.classList.add('open');
+            },
+            copyPostId(postId) {
+                navigator.clipboard.writeText(postId).then(() => {
+                    showToast('ID do Post copiado! 📋');
+                    this.togglePostMenu(postId);
+                });
+            },
             renderBuilderPost(post) {
-                let html = `<div class="post-builder-render">`;
+                let html = `<div class="post-builder-render" style="display: flex; flex-direction: column; gap: 15px;">`;
                 
                 (post.layout || []).forEach(block => {
                     let content = '';
-                    const style = `text-align: ${block.align}; color: ${block.color}; font-weight: ${block.bold ? '800' : '400'};`;
+                    const effectiveColor = block.color === '#ffffff' ? 'var(--text-color)' : (block.color || 'var(--text-color)');
+                    const isHigh = block.highlight;
+                    const hColor = block.highlightColor || '#ffff00';
+                    const blockBg = isHigh ? hColor : (block.bgColor || 'transparent');
+                    const blockColor = isHigh ? (builder.isDarkColor && builder.isDarkColor(hColor) ? '#ffffff' : '#000000') : effectiveColor;
+                    const blockWeight = (isHigh || block.bold) ? '800' : '400';
+                    const bRadius = (block.borderRadius || 0) + 'px';
+                    const fSize = (block.fontSize || 16) + 'px';
+                    
+                    const bgStyle = block.gradientBg ? `background: var(--gradient);` : (blockBg && blockBg !== 'transparent' ? `background: ${blockBg};` : '');
+                    const style = `text-align: ${block.align}; color: ${blockColor}; ${bgStyle} font-weight: ${blockWeight}; font-size: ${fSize}; border-radius: ${bRadius}; padding: ${block.bgColor && block.bgColor !== 'transparent' ? '15px' : '0'};`;
+                    const animClass = block.animation && block.animation !== 'none' ? `anim-${block.animation}` : '';
                     
                     if (block.type === 'title') {
-                        content = `<h2 style="${style} font-size: 1.8rem; margin: 0;">${block.content}</h2>`;
+                        content = `<h2 style="${style} line-height: 1.2; margin: 0;">${block.content}</h2>`;
+                    } else if (block.type === 'subtitle') {
+                        content = `<h3 style="${style} line-height: 1.3; margin: 0; opacity: 0.8;">${block.content}</h3>`;
                     } else if (block.type === 'text') {
-                        content = `<p style="${style} font-size: 1rem; line-height: 1.6; opacity: 0.9;">${block.content}</p>`;
-                    } else if (block.type === 'img') {
-                        const imgStyle = `margin: ${block.align === 'center' ? '0 auto' : block.align === 'right' ? '0 0 0 auto' : '0 auto 0 0'}; display: block; width: 100%; border-radius: 12px; border: 2px solid ${block.color === '#ffffff' ? 'transparent' : block.color}`;
+                        content = `<p style="${style} line-height: 1.6; opacity: 0.9; white-space: pre-wrap;">${block.content}</p>`;
+                    } else if (block.type === 'img' || block.type === 'hero') {
+                        const imgStyle = `margin: ${block.align === 'center' ? '0 auto' : block.align === 'right' ? '0 0 0 auto' : '0 auto 0 0'}; display: block; width: 100%; border-radius: ${bRadius}; border: 2px solid ${effectiveColor === 'var(--text-color)' ? 'transparent' : effectiveColor}`;
                         content = `<img src="${block.content}" style="${imgStyle}">`;
-                    }
-
-                    html += `
-                        <div style="width: 100%;">
-                            ${content}
-                        </div>
-                    `;
-                });
-
-                html += `</div>`;
-                return html;
-            }
-        };
-
-        // API Calls
-        const api = {
-            async fetchPosts() {
-                try {
-                    const res = await fetch('/api/posts');
-                    state.posts = await res.json();
-                    ui.renderPosts();
-                } catch (e) { console.error(e); }
-            },
-            async toggleLike(postId) {
-                const res = await fetch(`/api/posts/${postId}/like`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                if(res.ok) this.fetchPosts();
-            },
-            async addComment(postId, providedText = null) {
-                const text = providedText || document.getElementById(`comment-input-${postId}`).value;
-                if(!text) return;
-
-                const res = await fetch(`/api/posts/${postId}/comment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                    body: JSON.stringify({ text })
-                });
-                if(res.ok) {
-                    if(!providedText) document.getElementById(`comment-input-${postId}`).value = '';
-                    else document.getElementById('sheetCommentInput').value = '';
-                    await this.fetchPosts();
-                    if(document.getElementById('commentsSheet').classList.contains('open')) {
-                        ui.showCommentsModal(postId);
-                    }
-                }
-            },
-            async sharePostToUser(postId, receiverId) {
-                const post = state.posts.find(p => p._id === postId);
-                const content = `Confira este post de @${post.user.username}: [Post Link]`;
-                const res = await fetch('/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                    body: JSON.stringify({ receiverId, content })
-                });
-                if(res.ok) {
-                    showToast('Post compartilhado no Direct! ✅');
-                    ui.closeModal('shareModal');
-                }
-            },
-            async updateAdminNote(postId) {
-                const note = prompt('Digite a nota do administrador:');
-                if(note === null) return;
-                const res = await fetch(`/api/admin/posts/${postId}/note`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                    body: JSON.stringify({ note })
-                });
-                if(res.ok) this.fetchPosts();
-            },
-            async deletePost(postId) {
-                if(!confirm('Deseja excluir este post permanently?')) return;
-                const res = await fetch(`/api/posts/${postId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                if(res.ok) this.fetchPosts();
-            },
-            async updateProfile() {
-                const file = document.getElementById('editAvatar').files[0];
-                const fullName = document.getElementById('editName').value;
-                const bio = document.getElementById('editBio').value;
-
-                const btn = document.querySelector('#editProfileModal .btn-primary');
-                btn.innerText = 'Salvando...';
-
-                const formData = new FormData();
-                if(file) formData.append('avatar', file);
-                formData.append('fullName', fullName);
-                formData.append('bio', bio);
-
-                try {
-                    const res = await fetch('/api/users/profile', {
-                        method: 'PUT',
-                        headers: { 'Authorization': `Bearer ${state.token}` },
-                        body: formData
-                    });
-                    if(res.ok) {
-                        const updatedUser = await res.json();
-                        localStorage.setItem('user', JSON.stringify({
-                            id: updatedUser._id,
-                            username: updatedUser.username,
-                            fullName: updatedUser.fullName,
-                            avatar: updatedUser.avatar,
-                            bio: updatedUser.bio
-                        }));
-                        state.user = JSON.parse(localStorage.getItem('user'));
-                        ui.closeModal('editProfileModal');
-                        ui.renderProfile(state.user.username);
-                    }
-                } catch (e) { alert('Erro ao atualizar perfil'); }
-                finally { btn.innerText = 'Salvar'; }
-            },
-            async getUsers() {
-                const res = await fetch('/api/users', {
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                return await res.json();
-            },
-            async getMessages(userId) {
-                const res = await fetch(`/api/messages/${userId}`, {
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                return await res.json();
-            },
-            sendMessage() {
-                const input = document.getElementById('chatInput');
-                const content = input.value;
-                if(!content || !state.activeChatUser) return;
-                socket.emit('sendMessage', {
-                    senderId: state.user.id,
-                    receiverId: state.activeChatUser.id,
-                    content
-                });
-                input.value = '';
-            },
-            async searchMusic() {
-                const q = document.getElementById('musicSearch').value;
-                if (!q) return;
-                try { const res = await fetch(`/api/music/search?q=${encodeURIComponent(q)}`, { headers: {'Authorization': `Bearer ${state.token}`} }); const data = await res.json(); if(!data.data||data.data.length===0){document.getElementById('musicResults').innerHTML='<p>Nenhuma musica encontrada.</p>';return;}
-                    const box = document.getElementById('musicResults');
-                    box.innerHTML = data.data.map(t => `
-                        <div onclick="api.selectMusic('${t.id}','${t.title.replace(/'/g,"\\'")}','${t.artist.name.replace(/'/g,"\\'")}','${t.preview}')"
-                             style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;border-bottom:1px solid var(--glass-border);">
-                            <img src="${t.album.cover_small}" style="width:36px;height:36px;border-radius:8px;">
-                            <div style="font-size:0.8rem;"><b>${t.title}</b><br>${t.artist.name}</div>
-                        </div>`).join('');
-                } catch(e) { showToast('Erro na busca de música'); }
-            },
-            selectMusic(id, title, artist, previewUrl) {
-                state.selectedMusic = { title, artist, previewUrl };
-                document.getElementById('selectedMusic').innerHTML = `
-                    <div class="music-player">
-                        <i class="fa-solid fa-music" style="color:var(--accent-color);"></i>
-                        <div class="track-info"><b>${title}</b>${artist}</div>
-                        <audio src="${previewUrl}" controls></audio>
-                        <i class="fa-solid fa-xmark" onclick="api.clearMusic()" style="cursor:pointer;color:var(--secondary-text);"></i>
-                    </div>`;
-                document.getElementById('musicResults').innerHTML = '';
-            },
-            clearMusic() {
-                state.selectedMusic = null;
-                document.getElementById('selectedMusic').innerHTML = '';
-            },
-            async createPost() {
-                const file = document.getElementById('postFile').files[0];
-                const caption = document.getElementById('postCaption').value;
-                const title = document.getElementById('postTitle').value;
-                const description = document.getElementById('postDesc').value;
-                if(!file) return alert('Selecione uma foto ou vídeo');
-
-                const btn = document.querySelector('#postModal .btn-primary');
-                btn.innerText = 'Enviando...';
-                btn.disabled = true;
-
-                const formData = new FormData();
-                formData.append('media', file);
-                formData.append('caption', caption);
-                formData.append('title', title);
-                formData.append('description', description);
-                if(state.selectedMusic) formData.append('music', JSON.stringify(state.selectedMusic));
-
-                try {
-                    const res = await fetch('/api/posts', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${state.token}` },
-                        body: formData
-                    });
-                    if(res.ok) {
-                        ui.closeModal('postModal');
-                        document.getElementById('postFile').value = '';
-                        document.getElementById('postCaption').value = '';
-                        document.getElementById('postTitle').value = '';
-                        document.getElementById('postDesc').value = '';
-                        api.clearMusic();
-                        this.fetchPosts();
-                        showToast('Post publicado! Ã°Å¸Å½â€°');
-                    } else {
-                        const err = await res.json();
-                        alert('Erro: ' + (err.error || 'Falha ao publicar'));
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert('Erro de conexão ao publicar');
-                } finally {
-                    btn.innerText = 'Compartilhar';
-                    btn.disabled = false;
-                }
-            }
-        };
-
-        // Real-time Messages
-        socket.on('newMessage', (msg) => {
-            if(state.activeChatUser && (msg.sender === state.activeChatUser.id || msg.receiver === state.activeChatUser.id)) {
-                api.getMessages(state.activeChatUser.id).then(msgs => ui.renderChatMessages(msgs));
-            }
-        });
-
-        // Admin Notifications
-        socket.on('adminNotification', (data) => {
-            showToast('📢 ' + data.message, 6000);
-        });
-
-        // Avatar Helper - returns real URL or local path
-        function getAvatar(usernameOrObj, avatarUrl) {
-            const url = avatarUrl || (typeof usernameOrObj === 'object' ? usernameOrObj.avatar : null);
-            if (url && (url.startsWith('http') || url.startsWith('/'))) return url;
-            return getInitials(typeof usernameOrObj === 'string' ? usernameOrObj : usernameOrObj.username);
-        }
-
-        function getInitials(username) {
-            const letter = (username || '?')[0].toUpperCase();
-            const colors = ['#ff3e3e','#cc2366','#bc1888','#e6683c','#f09433'];
-            const color = colors[(username || '').charCodeAt(0) % colors.length] || colors[0];
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><circle cx="25" cy="25" r="25" fill="${color}"/><text x="25" y="33" font-size="22" font-family="Outfit,sans-serif" font-weight="700" fill="white" text-anchor="middle">${letter}</text></svg>`;
-            return 'data:image/svg+xml;base64,' + btoa(svg);
-        }
-
-        // Toast Helper
-        function showToast(message, duration = 3500) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerText = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), duration);
-        }
-
-        // Settings Module
-        const settings = {
-            toggleTheme() {
-                const isLight = document.body.classList.toggle('light-theme');
-                localStorage.setItem('theme', isLight ? 'light' : 'dark');
-                const toggle = document.getElementById('themeToggle');
-                if(isLight) toggle.classList.remove('on'); else toggle.classList.add('on');
-            },
-            init() {
-                if(localStorage.getItem('theme') === 'light') {
-                    document.body.classList.add('light-theme');
-                    document.getElementById('themeToggle')?.classList.remove('on');
-                }
-            }
-        };
-
-        // Admin Module
-        const admin = {
-            async load() {
-                if(!state.user?.isAdmin) return;
-                document.getElementById('adminSettingRow').style.display = 'flex';
-                await this.loadUsers();
-                await this.loadPosts();
-                await this.loadUserSelect();
-            },
-            async loadUsers() {
-                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${state.token}` } });
-                const users = await res.json();
-                const el = document.getElementById('adminUsersList');
-                el.innerHTML = `
-                    <div style="margin-bottom: 20px;">
-                        <button class="btn-primary" style="background: var(--gradient); width: auto; padding: 10px 20px;" onclick="admin.generateFakes()"><i class="fa-solid fa-users-gear"></i> Gerar Perfis Reais (10)</button>
-                    </div>
-                    <table class="admin-table">${users.map(u => `
-                        <tr>
-                            <td><img src="${getAvatar(u.username, u.avatar)}" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--accent-color);"></td>
-                            <td>${u.username} ${u.isFake ? '<span class="admin-badge" style="background:#555">FAKE</span>' : ''}</td>
-                            <td style="font-size: 0.7rem; color: var(--secondary-text);">Bônus: ${ui.formatNumber(u.followerBonus || 0)}</td>
-                            <td>
-                                <button class="btn-ban" style="background: var(--accent-color); margin-bottom: 4px;" onclick="admin.editFollowers('${u._id}', '${u.username}')">Bônus</button>
-                                <button class="btn-ban ${u.isBanned ? 'banned' : ''}" onclick="admin.toggleBan('${u._id}',this)">${u.isBanned ? 'Desbanir' : 'Banir'}</button>
-                            </td>
-                        </tr>`).join('')}</table>`;
-            },
-            async generateFakes() {
-                showToast('Gerando perfis premium...');
-                const res = await fetch('/api/admin/generate-fakes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                    body: JSON.stringify({ count: 10 })
-                });
-                if(res.ok) {
-                    showToast('10 perfis gerados! ✅');
-                    this.loadUsers();
-                }
-            },
-            editFollowers(userId, username) {
-                ui.showPrompt('Bônus de Seguidores', `Quantos seguidores bônus para @${username}?`, async (count) => {
-                    if (count === null || count === '') return;
-                    const res = await fetch(`/api/admin/users/${userId}/followers`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                        body: JSON.stringify({ count })
-                    });
-                    if (res.ok) {
-                        showToast('Seguidores atualizados! ✨');
-                        this.loadUsers();
-                    }
-                });
-            },
-            async loadPosts() {
-                const res = await fetch('/api/admin/posts', { headers: { 'Authorization': `Bearer ${state.token}` } });
-                const posts = await res.json();
-                const el = document.getElementById('adminPostsList');
-                el.innerHTML = `<table class="admin-table">${posts.map(p => `
-                    <tr>
-                        <td><img src="${p.media?.[0]?.url || ''}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;"></td>
-                        <td style="max-width:120px;overflow:hidden;">${p.user?.username || '?'}<br><small style="color:var(--secondary-text);">${p.caption?.substring(0,40) || ''}</small></td>
-                        <td><i class="fa-regular fa-trash-can btn-delete" onclick="admin.deletePost('${p._id}',this)" title="Deletar"></i></td>
-                    </tr>`).join('')}</table>`;
-            },
-            async loadUserSelect() {
-                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${state.token}` } });
-                const users = await res.json();
-                const sel = document.getElementById('notifyTarget');
-                users.forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u._id;
-                    opt.textContent = 'Ã°Å¸â€˜Â¤ ' + u.username;
-                    sel.appendChild(opt);
-                });
-            },
-            async toggleBan(userId, btn) {
-                const res = await fetch(`/api/admin/users/${userId}/ban`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                const data = await res.json();
-                btn.textContent = data.isBanned ? 'Desbanir' : 'Banir';
-                btn.classList.toggle('banned', data.isBanned);
-                showToast(data.isBanned ? `${data.username} foi banido.` : `${data.username} foi desbanido.`);
-            },
-            async deletePost(postId, icon) {
-                if(!confirm('Deletar este post?')) return;
-                const res = await fetch(`/api/admin/posts/${postId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${state.token}` }
-                });
-                if(res.ok) { icon.closest('tr').remove(); showToast('Post deletado pelo admin.'); }
-            },
-            async promote() {
-                const input = document.getElementById('promoteUsername');
-                let username = input ? input.value : '';
-                if (!username) username = prompt('Qual o username para promover?');
-                if (!username) return;
-                
-                const secret = prompt('Insira o código secreto de admin (blog-8ano-c-2026):');
-                if (!secret) return;
-                
-                try {
-                    const res = await fetch('/api/auth/promote-admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, secret })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        if(input) input.value = '';
-                        showToast('âœ… ' + data.message);
-                    } else {
-                        showToast('âŒ ' + (data.error || 'Erro ao promover'));
-                    }
-                } catch(e) { showToast('âŒ Erro de conexÃ£o'); }
-            },
-            async sendNotification() {
-                const message = document.getElementById('notifyMessage').value;
-                const targetUserId = document.getElementById('notifyTarget').value;
-                if(!message) return;
-                const res = await fetch('/api/admin/notify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
-                    body: JSON.stringify({ message, targetUserId })
-                });
-                if(res.ok) {
-                    document.getElementById('notifyMessage').value = '';
-                    showToast('Notificação enviada! ✅€¦');
-                }
-            }
-        };
-
-        // Blog Builder Logic (Phase 10: Block-based)
-        const builder = {
-            blocks: [],
-            participants: [],
-            
-            init() {
-                this.blocks = [];
-                this.participants = [];
-                this.renderAll();
-                this.renderTags();
-                document.getElementById('builderGroupName').value = '';
-                document.getElementById('builderParticipantSearch').value = '';
-                document.getElementById('participantSuggestions').style.display = 'none';
-            },
-
-            async searchParticipants(q) {
-                const box = document.getElementById('participantSuggestions');
-                
-                try {
-                    const url = q ? `/api/users?includeFakes=true&q=${encodeURIComponent(q)}` : '/api/users?includeFakes=true';
-                    const res = await fetch(url, {
-                        headers: { 'Authorization': `Bearer ${state.token}` }
-                    });
-                    const users = await res.json();
-                    
-                    if (!users || users.length === 0) {
-                        box.style.display = 'none';
-                        return;
-                    }
-
-                    let suggestionsHtml = users.map(u => {
-                        const displayName = u.fullName || u.username;
-                        const avatarUrl = getAvatar(u.username, u.avatar);
-                        const isSelected = this.participants.some(p => p.id === u._id);
-                        return `
-                            <div class="suggestion-item ${isSelected ? 'selected' : ''}" onclick="builder.addParticipant('${u._id}', '${u.username}', '${displayName.replace(/'/g,"\\'")}','${u.avatar}')">
-                                <img src="${avatarUrl}">
-                                <div>
-                                    <div class="name">
-                                        ${displayName} ${u.isFake ? '<i class="fa-solid fa-circle-check" style="color: #1DA1F2; font-size: 0.7rem;"></i>' : ''}
-                                        ${isSelected ? '<i class="fa-solid fa-check" style="color: var(--primary-color); margin-left: 5px;"></i>' : ''}
-                                    </div>
-                                    <div class="user">@${u.username}</div>
-                                </div>
+                    } else if (block.type === 'quote') {
+                        content = `<blockquote style="${style} font-family: 'Playfair Display', serif; font-style: italic; border-left: 4px solid var(--accent-color); padding-left: 20px; margin: 0;">${block.content}</blockquote>`;
+                    } else if (block.type === 'info') {
+                        content = `<div style="${style} border-left: 4px solid var(--accent-color); font-weight: 600;">${block.content}</div>`;
+                    } else if (block.type === 'stat') {
+                        content = `<div style="${style} text-align: center; font-weight: 800;">${block.content}</div>`;
+                    } else if (block.type === 'list') {
+                        let parts = block.content.split('|||');
+                        content = `
+                            <div style="display: flex; gap: 15px; ${bgStyle} padding: 15px; border-radius: ${bRadius}; align-items: flex-start;">
+                                <div style="flex: 1; font-weight: 700; color: ${blockColor};">${parts[0]}</div>
+                                <div style="flex: 2; font-size: 0.9em; opacity: 0.8; color: ${blockColor};">${parts[1] || ''}</div>
                             </div>
                         `;
-                    }).join('');
-                    
-                    suggestionsHtml += `
-                        <div style="padding: 10px; border-top: 1px solid var(--glass-border); text-align: center;">
-                            <button class="btn-secondary" style="width: 100%; padding: 8px; font-size: 0.8rem;" onclick="document.getElementById('participantSuggestions').style.display='none'">Concluir Seleção</button>
-                        </div>
-                    `;
-                    
-                    box.innerHTML = suggestionsHtml;
-                    box.style.display = 'block';
-                } catch (e) { console.error(e); }
+                    } else if (block.type === 'button') {
+                        let [text, url] = block.content.split('|||');
+                        content = `<div style="text-align: ${block.align}"><a href="${url}" target="_blank" class="builder-btn" style="${bgStyle} color: ${blockColor}; border-radius: ${bRadius}; font-size: ${fSize};">${text}</a></div>`;
+                    } else if (block.type === 'youtube' || block.type === 'video') {
+                        const ytUrl = builder.getYoutubeEmbed ? builder.getYoutubeEmbed(block.content) : block.content;
+                        content = `<div class="builder-video-container" style="border-radius: ${bRadius}"><iframe src="${ytUrl}" frameborder="0" allowfullscreen></iframe></div>`;
+                    }
+                    html += `<div class="${animClass}" style="width: 100%;">${content}</div>`;
+                });
+                return html + `</div>`;
             },
+            initScrollReveal() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                    });
+                }, { threshold: 0.1 });
+                document.querySelectorAll('[class*="anim-"]').forEach(el => observer.observe(el));
+            }
+        };
 
-            addParticipant(id, username, fullName, avatar) {
-                const index = this.participants.findIndex(p => p.id === id);
-                if (index !== -1) {
-                    // Toggle off if already selected
-                    this.participants.splice(index, 1);
-                } else {
-                    this.participants.push({ id, username, fullName, avatar });
-                }
-                this.renderTags();
-                // We keep the box open for multi-select, just refresh the list to show checkmarks
-                this.searchParticipants(document.getElementById('builderParticipantSearch').value);
+        const admin = {
+            async load() {
+                if(!state.user.isAdmin) return;
+                this.loadConfigs();
+                this.searchUsersForManagement();
             },
-
-            removeParticipant(id) {
-                this.participants = this.participants.filter(p => p.id !== id);
-                this.renderTags();
-            },
-
-            renderTags() {
-                const container = document.getElementById('builderParticipantTags');
-                container.innerHTML = this.participants.map(p => `
-                    <div class="tag-chip">
-                        <span>${p.fullName}</span>
-                        <i class="fa-solid fa-xmark" onclick="builder.removeParticipant('${p.id}')"></i>
+            async loadConfigs() {
+                const res = await fetch('/api/admin/system/config', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const configs = await res.json();
+                const area = document.getElementById('systemTogglesArea');
+                if(!area) return;
+                area.innerHTML = configs.map(c => `
+                    <div class="setting-row">
+                        <div><b>${c.key}</b></div>
+                        <div class="toggle-switch ${c.value ? 'on' : ''}" onclick="admin.toggleFeature('${c.key}', ${!c.value})"><div class="toggle-thumb"></div></div>
                     </div>
                 `).join('');
             },
+            async toggleFeature(key, value) {
+                await fetch('/api/admin/system/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+                    body: JSON.stringify({ key, value })
+                });
+                this.loadConfigs();
+            },
+            async searchUsersForManagement(suffix = '') {
+                const q = document.getElementById('adminUserSearch' + suffix).value;
+                const users = await api.getUsers(true); 
+                const filtered = users.filter(u => u.username.toLowerCase().includes(q.toLowerCase()));
+                const list = document.getElementById('adminUserList' + suffix);
+                list.innerHTML = filtered.map(u => `
+                    <div class="glass" style="padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <b>${u.username} ${u.isVerified ? '✅' : ''}</b><br>
+                            <small>Tokens: ${u.iaTokens || 0}</small>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="builder-btn" onclick="admin.toggleVerification('${u._id}', ${u.isVerified})">${u.isVerified ? 'Remover Verif.' : 'Verificar'}</button>
+                            <button class="builder-btn" onclick="admin.promptSetTokens('${u._id}', ${u.iaTokens})">+ Tokens</button>
+                        </div>
+                    </div>
+                `).join('');
+            },
+            async toggleVerification(userId, current) {
+                await fetch(`/api/admin/users/${userId}/verify`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isVerified: !current })
+                });
+                this.searchUsersForManagement('Profile');
+                this.searchUsersForManagement('');
+            },
+            async promptSetTokens(userId, curr) {
+                const val = prompt('Quantidade de Tokens:', curr);
+                if(val === null) return;
+                await fetch(`/api/admin/users/${userId}/tokens`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ iaTokens: parseInt(val) })
+                });
+                this.searchUsersForManagement('Profile');
+                this.searchUsersForManagement('');
+            }
+        };
 
-            addBlock(type, content = '', extra = {}) {
-                const block = {
-                    id: Date.now(),
-                    type,
-                    content: content || (type === 'title' ? 'Título do Blog' : type === 'text' ? 'Seu texto aqui...' : ''),
-                    align: extra.align || 'left',
-                    bold: extra.bold || false,
-                    color: extra.color || '#ffffff',
-                    fontSize: extra.fontSize || (type === 'title' ? 24 : 16)
-                };
+        const search = {
+            async init() {
+                const container = document.getElementById('searchResults');
+                if(container) container.innerHTML = '<p style="text-align: center; color: var(--secondary-text); margin-top: 50px;">Procure por usuários ou postagens.</p>';
+            },
+            async perform() {
+                const query = document.getElementById('searchInput').value;
+                const res = await fetch(`/api/search?q=${query}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const results = await res.json();
+                this.renderResults(results);
+            },
+            renderResults(results) {
+                const container = document.getElementById('searchResults');
+                if(!container) return;
+                
+                if(results.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--secondary-text); margin-top: 50px;">Nenhum resultado encontrado.</p>';
+                    return;
+                }
+
+                container.innerHTML = results.map(r => `
+                    <div class="glass" style="padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="ui.viewProfile('${r._id}')">
+                        <img src="${getAvatar(r.username, r.avatar)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                        <div>
+                            <div style="font-weight: 700;">${r.username}</div>
+                            <div style="font-size: 0.8rem; color: var(--secondary-text);">${r.fullName || ''}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        const builder = {
+            blocks: [],
+            init() {
+                this.blocks = [];
+                const gn = document.getElementById('builderGroupName');
+                if(gn) gn.value = '';
+                const tags = document.getElementById('builderParticipantTags');
+                if(tags) tags.innerHTML = '';
+                this.renderAll();
+            },
+            addBlock(type) {
+                const block = { type, content: '', align: 'left', color: '#ffffff', bgColor: 'transparent', borderRadius: 8, fontSize: 16 };
+                if (type === 'title') block.content = 'Novo Título';
+                else if (type === 'text') block.content = 'Comece a escrever aqui...';
+                else if (type === 'quote') block.content = 'Uma citação inspiradora...';
+                
                 this.blocks.push(block);
                 this.renderAll();
             },
-
-            async handleImageUploadFromInput(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.addBlock('img', event.target.result);
-                };
-                reader.readAsDataURL(file);
+            isDarkColor(hex) {
+                if (!hex || hex === 'transparent') return false;
+                const c = hex.substring(1);
+                const rgb = parseInt(c, 16);
+                const r = (rgb >> 16) & 0xff;
+                const g = (rgb >>  8) & 0xff;
+                const b = (rgb >>  0) & 0xff;
+                const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                return luma < 128;
             },
-
+            getYoutubeEmbed(url) {
+                if (!url) return '';
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
+            },
             renderAll() {
                 const list = document.getElementById('block-list');
-                list.innerHTML = '';
-                this.blocks.forEach((block, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'blog-block';
-                    
-                    let contentHtml = '';
-                    if (block.type === 'title') {
-                        contentHtml = `<input type="text" class="builder-title-input" value="${block.content}" oninput="builder.updateContent(${index}, this.value)" style="text-align: ${block.align}; color: ${block.color}; font-weight: ${block.bold ? '800' : '400'}">`;
-                    } else if (block.type === 'text') {
-                        contentHtml = `<textarea class="builder-text-input" oninput="builder.updateContent(${index}, this.value)" style="text-align: ${block.align}; color: ${block.color}; font-weight: ${block.bold ? '700' : '400'}">${block.content}</textarea>`;
-                    } else if (block.type === 'img') {
-                        contentHtml = `<img src="${block.content}" class="builder-img-preview" style="margin: ${block.align === 'center' ? '0 auto' : block.align === 'right' ? '0 0 0 auto' : '0 auto 0 0'}; display: block; border: 2px solid ${block.color === '#ffffff' ? 'transparent' : block.color}">`;
-                    }
-
-                    div.innerHTML = `
+                if(!list) return;
+                list.innerHTML = this.blocks.map((b, i) => `
+                    <div class="blog-block" style="text-align:${b.align}; color:${b.color}; background:${b.bgColor}; border-radius:${b.borderRadius}px; margin-bottom: 15px;">
                         <div class="block-controls">
-                            <div class="block-move-btns">
-                                <button class="block-btn" onclick="builder.move(${index}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
-                                <button class="block-btn" onclick="builder.move(${index}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
-                            </div>
+                            <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase;">${b.type}</span>
                             <div class="block-actions">
-                                <button class="block-btn ${block.align === 'left' ? 'active' : ''}" onclick="builder.setStyle(${index}, 'align', 'left')"><i class="fa-solid fa-align-left"></i></button>
-                                <button class="block-btn ${block.align === 'center' ? 'active' : ''}" onclick="builder.setStyle(${index}, 'align', 'center')"><i class="fa-solid fa-align-center"></i></button>
-                                <button class="block-btn ${block.align === 'right' ? 'active' : ''}" onclick="builder.setStyle(${index}, 'align', 'right')"><i class="fa-solid fa-align-right"></i></button>
-                                <button class="block-btn ${block.bold ? 'active' : ''}" onclick="builder.setStyle(${index}, 'bold', ${!block.bold})"><i class="fa-solid fa-bold"></i></button>
-                                <button class="block-btn" onclick="builder.changeColor(${index})"><i class="fa-solid fa-palette"></i></button>
-                                <button class="block-btn" onclick="builder.remove(${index})" style="color: #ff4d4d"><i class="fa-solid fa-trash"></i></button>
+                                <i class="fa-solid fa-trash" style="cursor: pointer; color: #ff3e3e;" onclick="builder.remove(${i})"></i>
                             </div>
                         </div>
-                        <div class="block-content-area">
-                            ${contentHtml}
-                        </div>
-                    `;
-                    list.appendChild(div);
+                        ${b.type === 'title' ? `<input type="text" class="builder-title-input" value="${b.content}" oninput="builder.update(${i}, 'content', this.value)">` : 
+                          b.type === 'text' || b.type === 'quote' ? `<textarea class="builder-text-input" oninput="builder.update(${i}, 'content', this.value)">${b.content}</textarea>` : 
+                          `<img src="${b.content || 'https://via.placeholder.com/400x200?text=Imagem+vazia'}" style="width:100%; border-radius: 8px;">`}
+                    </div>
+                `).join('');
+            },
+            update(i, key, val) { this.blocks[i][key] = val; },
+            remove(i) { this.blocks.splice(i, 1); this.renderAll(); },
+            async publish(status) {
+                const gn = document.getElementById('builderGroupName').value || 'Meu Trabalho';
+                const res = await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName: gn, isBuilderBlog: true, layout: this.blocks, status: status })
                 });
+                if(res.ok) { ui.closeModal('builderModal'); api.fetchPosts(); showToast('Trabalho publicado com sucesso! 🚀'); }
             },
-
-            updateContent(index, value) {
-                this.blocks[index].content = value;
-            },
-
-            setStyle(index, prop, value) {
-                this.blocks[index][prop] = value;
+            loadTemplate(type) {
+                if(type === 'noticia') {
+                    this.blocks = [
+                        { type: 'title', content: 'Grande Notícia do Dia', align: 'center', color: '#ffffff', bgColor: 'transparent' },
+                        { type: 'text', content: 'Este é o corpo da notícia. Escreva os detalhes aqui...', align: 'left', color: '#a0a0a0', bgColor: 'transparent' }
+                    ];
+                }
                 this.renderAll();
             },
-
-            changeColor(index) {
-                ui.showPrompt('Cor do Bloco', 'Digite a cor (Ex: #ff0000 ou red):', (color) => {
-                    if (color) {
-                        this.blocks[index].color = color;
-                        this.renderAll();
-                    }
-                });
+            async searchParticipants(q) {
+                if(!q) { document.getElementById('participantSuggestions').style.display = 'none'; return; }
+                const res = await fetch(`/api/search?q=${q}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const users = await res.json();
+                const container = document.getElementById('participantSuggestions');
+                container.style.display = 'block';
+                container.innerHTML = users.map(u => `
+                    <div class="suggestion-item" onclick="builder.toggleParticipant('${u._id}', '${u.username}')">
+                        <img src="${getAvatar(u.username, u.avatar)}">
+                        <span>${u.username}</span>
+                    </div>
+                `).join('');
             },
-
-            move(index, dir) {
-                const newIndex = index + dir;
-                if (newIndex < 0 || newIndex >= this.blocks.length) return;
-                const temp = this.blocks[index];
-                this.blocks[index] = this.blocks[newIndex];
-                this.blocks[newIndex] = temp;
-                this.renderAll();
+            toggleParticipant(id, username) {
+                const container = document.getElementById('builderParticipantTags');
+                const existing = container.querySelector(`[data-id="${id}"]`);
+                if(existing) existing.remove();
+                else {
+                    const tag = document.createElement('div');
+                    tag.className = 'tag-chip';
+                    tag.dataset.id = id;
+                    tag.innerHTML = `${username} <i class="fa-solid fa-xmark" onclick="this.parentElement.remove()"></i>`;
+                    container.appendChild(tag);
+                }
+                document.getElementById('participantSuggestions').style.display = 'none';
+                document.getElementById('builderParticipantSearch').value = '';
             },
-
-            remove(index) {
-                this.blocks.splice(index, 1);
-                this.renderAll();
-            },
-
-            async publish() {
-                const groupName = document.getElementById('builderGroupName').value;
-                const participantIds = this.participants.map(p => p.id);
-                
-                if (!groupName) return showToast('Informe o nome do grupo.');
-                if (participantIds.length === 0) return showToast('Marque pelo menos um integrante.');
-                if (this.blocks.length === 0) return showToast('Adicione pelo menos um bloco ao seu blog.');
-
-                const btn = document.getElementById('btnSaveBlog');
-                const originalText = btn.innerText;
-                btn.innerText = 'Publicando Blog...';
-                btn.disabled = true;
-
+            async handleHeroUploadFromInput(e) {
+                const file = e.target.files[0];
+                if(!file) return;
                 const formData = new FormData();
-                formData.append('groupName', groupName);
-                formData.append('participants', JSON.stringify(participantIds));
-                formData.append('layout', JSON.stringify(this.blocks));
-                formData.append('isBuilderBlog', true);
-                
-                try {
-                    const res = await fetch('/api/posts', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${state.token}` },
-                        body: formData
-                    });
-                    if (res.ok) {
-                        showToast('Blog publicado com sucesso! 🎉');
-                        ui.closeModal('builderModal');
-                        api.fetchPosts();
-                        ui.showPage('feedPage');
-                    }
-                } catch (e) { showToast('Erro ao publicar. Tente novamente.'); }
-                
-                btn.innerText = originalText;
-                btn.disabled = false;
+                formData.append('file', file);
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                this.addBlock('img');
+                this.blocks[this.blocks.length-1].content = data.url;
+                this.renderAll();
+            },
+            async handleImageUploadFromInput(e) { this.handleHeroUploadFromInput(e); }
+        };
+
+        const notes = {
+            async fetch() {
+                const res = await fetch('/api/notes', { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const list = await res.json();
+                const container = document.getElementById('notesContainer');
+                if(container) container.innerHTML = list.map(n => `<div class="note-item"><div class="note-bubble">${n.content}</div></div>`).join('');
             }
         };
 
-        const auth = {
-            async login() {
-                const username = document.getElementById('loginUser').value;
-                const password = document.getElementById('loginPass').value;
-                
-                try {
-                    const res = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    
-                    if(res.ok) {
-                        const data = await res.json();
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        location.reload();
-                    } else {
-                        alert('Usuário ou senha incorretos');
-                    }
-                } catch(e) { alert('Erro na conexão'); }
-            },
-            async register() {
-                const fullName = document.getElementById('regName').value;
-                const username = document.getElementById('regUser').value;
-                const password = document.getElementById('regPass').value;
-                
-                try {
-                    const res = await fetch('/api/auth/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ fullName, username, password })
-                    });
-                    
-                    if(res.ok) {
-                        alert('Cadastro realizado com sucesso!');
-                        ui.showPage('loginPage');
-                    } else {
-                        alert('Erro ao cadastrar. Talvez o usuário já exista.');
-                    }
-                } catch(e) { alert('Erro na conexão'); }
-            },
-            logout() {
-                localStorage.clear();
-                location.reload();
+        // Socket Events
+        socket.on('newMessage', (msg) => {
+            if(state.activeChatUser && msg.sender === state.activeChatUser.id) {
+                // UI update logic here if needed
             }
-        };
+        });
 
-        // Init App
-        settings.init();
-        const savedColorTheme = localStorage.getItem('themeColor');
-        if (savedColorTheme) ui.setThemeColor(savedColorTheme);
-        
-        if(state.token) {
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            ui.showPage('feedPage');
-            api.fetchPosts();
-            socket.emit('join', state.user.id);
-            admin.load();
-        } else if(location.hash === '#register') {
-            ui.showPage('registerPage');
-        } else {
-            ui.showPage('loginPage');
+        // Helpers
+        function getAvatar(username, url) { return url || `https://api.dicebear.com/7.x/initials/svg?seed=${username}`; }
+        function showToast(m) { 
+            const t = document.getElementById('toastContainer'); 
+            if(!t) return;
+            const d = document.createElement('div'); d.className='toast'; d.innerText=m; 
+            t.appendChild(d); 
+            setTimeout(()=>d.remove(), 3000); 
         }
-    </script>
-</body>
-</html>
 
+        // Boot
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                if(splash) splash.style.display = 'none';
+                
+                if(state.token && state.user) {
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('loginPage').classList.add('hidden');
+                    ui.initNav();
+                    api.fetchPosts();
+                    notes.fetch();
+                    admin.load();
+                    socket.emit('join', state.user.id);
+                } else {
+                    document.getElementById('mainApp').classList.add('hidden');
+                    document.getElementById('loginPage').classList.remove('hidden');
+                }
+            }, 2000); // 2 second splash
+        });
+    </script>
+
+    <!-- Admin User Management Modal -->
+    <div id="adminUserModal" class="modal hidden">
+        <div class="modal-content glass" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-users-gear"></i> Gestão de Usuários</h3>
+                <i class="fa-solid fa-xmark close-modal" onclick="ui.closeModal('adminUserModal')"></i>
+            </div>
+            <div style="padding: 20px;">
+                <input type="text" id="adminUserSearch" class="glass-input" placeholder="Buscar par username..." oninput="admin.searchUsersForManagement()" style="margin-bottom: 20px;">
+                <div id="adminUserList" style="display: flex; flex-direction: column; gap: 12px; max-height: 450px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--secondary-text);">Digite um nome para buscar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+    </html>
